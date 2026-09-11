@@ -368,13 +368,16 @@ app.post("/api/generate", auth, async (req, res) => {
     const data = await falResponse.json();
 
     if (!falResponse.ok) {
-      console.error("FAL error:", data);
+  console.error("FAL error:", data);
 
-      return res.status(502).json({
-        error: "AI image generation failed."
-      });
-    }
-
+  return res.status(502).json({
+    error:
+      data?.detail ||
+      data?.error ||
+      data?.message ||
+      `FAL request failed with status ${falResponse.status}`
+  });
+}
     const imageUrl = data?.images?.[0]?.url;
 
     if (!imageUrl) {
