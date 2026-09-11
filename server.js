@@ -315,35 +315,90 @@ app.post("/api/verify-subscription", auth, (req, res) => {
   });
 });
 
-app.post("/api/generate", auth, (req, res) => {
+app.post("/api/generate", auth, async (req, res) => {
   const user = [...users.values()].find(
     (u) => u.id === req.user.id
   );
 
   if (!user || user.plan !== "pro") {
     return res.status(403).json({
-      error: "Creator Pro is required. Upgrade for ₹199/month.",
+      error: "Creator Pro is required. Upgrade for ₹199/month."
     });
   }
 
-  const { prompt, type = "video" } = req.body || {};
+  const { prompt, type = "image" } = req.body || {};
 
   if (!prompt || prompt.length < 5) {
     return res.status(400).json({
-      error: "Enter a prompt.",
+      error: "Enter a prompt."
     });
   }
 
-  return res.json({
-    ok: true,
-    status: "queued",
-    type,
-    prompt,
-    message:
-      "CreatorAI generation endpoint is ready. Connect an AI video/image/voice provider to return the finished media.",
-  });
-});
+  if (!process.env.FAL_KEY) {
+    return res.status(503).json({
+      error: "AI service is not configured."
+    });
+  }
 
+  if (type !== "image") {
+    return res.status(400).json({
+      error: "Image generation is available first. Video and voice are coming next."
+    });
+  }
+
+  try {
+    const falResponse = await fetch(
+      "https://fal.run/fal-ai/flux/schnell",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Key ${process.env.FAL_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt,
+          image_size: "square_hd",
+          num_images: 1,
+          output_format: "jpeg",
+          enable_safety_checker: true
+        })
+      }
+    );
+
+    const data = await falResponse.json();
+
+    if (!falResponse.ok) {
+      console.error("FAL error:", data);
+
+      return res.status(502).json({
+        error: "AI image generation failed."
+      });
+    }
+
+    const imageUrl = data?.images?.[0]?.url;
+
+    if (!imageUrl) {
+      return res.status(502).json({
+        error: "AI returned no image."
+      });
+    }
+
+    return res.json({
+      ok: true,
+      status: "completed",
+      type: "image",
+      prompt,
+      imageUrl
+    });
+
+  } catch (error) {
+    console.error("FAL request error:", error);
+
+    return res.status(500).json({
+      error: "Unable to generate the image right now."
+    });
+  }
+});
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
