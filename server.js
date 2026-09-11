@@ -229,7 +229,7 @@ app.post("/api/create-subscription", auth, async (req, res) => {
 
     const sub = await rp.subscriptions.create({
       plan_id: process.env.RAZORPAY_PLAN_ID,
-      total_count: 1200,
+      total_count: 12,
       quantity: 1,
       customer_notify: 1,
       notes: {
