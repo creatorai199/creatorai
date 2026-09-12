@@ -839,6 +839,144 @@ else {
   }
  });
 
+/* =========================
+   CREATORAI VOICE — GEMINI TTS
+   Automatic multilingual voice
+========================= */
+
+app.post("/api/tts", auth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+
+    if (!user || user.plan !== "pro") {
+      return res.status(403).json({
+        error: "Creator Pro is required. Upgrade for ₹199/month.",
+      });
+    }
+
+    const { text, voice = "Kore" } = req.body || {};
+
+    if (!text || text.trim().length < 1) {
+      return res.status(400).json({
+        error: "No voice script was provided.",
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({
+        error: "Gemini AI is not configured.",
+      });
+    }
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text:
+                    "Speak the following text naturally and clearly. " +
+                    "Automatically detect the language and speak in the same " +
+                    "language. Do not translate. Preserve the original words " +
+                    "and meaning.\n\n" +
+                    text.trim(),
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: voice,
+                },
+              },
+            },
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini TTS error:", data);
+
+      return res.status(502).json({
+        error:
+          data?.error?.message ||
+          "CreatorAI Voice is temporarily unavailable.",
+      });
+    }
+
+    const audioBase64 =
+      data?.candidates?.[0]?.content?.parts?.find(
+        (part) => part?.inlineData?.data
+      )?.inlineData?.data;
+
+    if (!audioBase64) {
+      return res.status(502).json({
+        error: "Gemini returned no audio.",
+      });
+    }
+
+    const pcm = Buffer.from(audioBase64, "base64");
+
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+
+    const byteRate =
+      sampleRate * numChannels * (bitsPerSample / 8);
+
+    const blockAlign =
+      numChannels * (bitsPerSample / 8);
+
+    const wav = Buffer.alloc(44 + pcm.length);
+
+    wav.write("RIFF", 0);
+    wav.writeUInt32LE(36 + pcm.length, 4);
+    wav.write("WAVE", 8);
+
+    wav.write("fmt ", 12);
+    wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20);
+    wav.writeUInt16LE(numChannels, 22);
+    wav.writeUInt32LE(sampleRate, 24);
+    wav.writeUInt32LE(byteRate, 28);
+    wav.writeUInt16LE(blockAlign, 32);
+    wav.writeUInt16LE(bitsPerSample, 34);
+
+    wav.write("data", 36);
+    wav.writeUInt32LE(pcm.length, 40);
+
+    pcm.copy(wav, 44);
+
+    return res.json({
+      ok: true,
+      status: "completed",
+      type: "audio",
+      mimeType: "audio/wav",
+      audioBase64: wav.toString("base64"),
+    });
+
+  } catch (error) {
+    console.error("CreatorAI TTS error:", error);
+
+    return res.status(500).json({
+      error: "Unable to generate voice audio right now.",
+    });
+  }
+});
+
 app.post("/api/generate", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
