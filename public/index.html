@@ -1025,11 +1025,82 @@ window.creatorAction = async function(action){
     return;
   }
   if (action === "video") {
-    alert(
-      "🎬 Video creation selected.\n\nVideo generation will be connected to the CreatorAI video engine next."
-    );
+
+  const result = document.getElementById("brainResult");
+  const brainText = document.getElementById("brainText");
+
+  if (!window.creatorBrainPlan) {
+    alert("First generate a Brain plan.");
     return;
   }
+
+  brainText.textContent = "🎬 CreatorAI is creating your video production package...";
+
+  try {
+
+    const response = await fetch("/api/brain", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        type: "video",
+        idea:
+          "Turn this CreatorAI production plan into a complete production-ready " +
+          "short-form video package. Include: video concept, duration, 9:16 format, " +
+          "scene-by-scene breakdown with exact timing, visual descriptions, characters, " +
+          "dialogue, voice-over, camera movement, lighting, music, SFX, transitions, " +
+          "on-screen text, editing instructions and a final AI video-generation prompt. " +
+          "Make it suitable for a 20–45 second social-media video. " +
+          "Keep the language and cultural style appropriate to the original idea.\n\n" +
+          window.creatorBrainPlan
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      brainText.textContent =
+        data.error || "Video production package generation failed.";
+      return;
+    }
+
+    window.creatorVideoPlan = data.result || "";
+
+    brainText.innerHTML = `
+      <h3>🎬 CreatorAI Video Production Package</h3>
+
+      <div style="white-space:pre-wrap;">${window.creatorVideoPlan}</div>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:18px;
+      ">
+        <button onclick="copyVideoPlan()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          📋 Copy Video Package
+        </button>
+      </div>
+    `;
+
+    window.scrollTo({
+      top: result.getBoundingClientRect().top + window.scrollY - 100,
+      behavior: "smooth"
+    });
+
+  } catch (error) {
+
+    console.error("Video production error:", error);
+
+    brainText.textContent =
+      "CreatorAI Video generator is temporarily unavailable.";
+  }
+
+  return;
+}
 
  if (action === "image") {
 
