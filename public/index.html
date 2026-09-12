@@ -197,6 +197,33 @@ input,textarea,select{
 .faq p{color:#9295a1;line-height:1.6}
 .small{font-size:13px;color:#777b88}
 .loading{opacity:.7}
+.voice-panel{
+  margin-top:16px;
+  padding:18px;
+  border:1px solid #42366b;
+  border-radius:16px;
+  background:linear-gradient(145deg,#111219,#151124);
+}
+.voice-panel h3{margin:0 0 8px}
+.voice-panel p{color:#9295a1;line-height:1.5}
+.voice-controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.voice-main-btn{
+  width:100%;
+  margin-top:12px;
+  font-size:16px;
+}
+.voice-audio{
+  width:100%;
+  margin-top:16px;
+}
+@media(max-width:750px){
+  .voice-controls{grid-template-columns:1fr}
+}
 @media(max-width:750px){
   .links{display:none}
   .grid{grid-template-columns:1fr}
@@ -359,7 +386,7 @@ input,textarea,select{
 
     <div class="tools">
 
-      <select id="type">
+      <select id="type" onchange="updateCreatorMode()">
         <option value="video">🎬 Video</option>
         <option value="image">🖼️ Image</option>
         <option value="voice">🎙️ Voice</option>
@@ -371,6 +398,36 @@ input,textarea,select{
         🧠 Improve My Idea
       </button>
 
+    </div>
+
+    <div id="voiceWorkspace" class="voice-panel" style="display:none">
+      <h3>🎙️ CreatorAI Voice Studio</h3>
+      <p>
+        Turn your words directly into a natural AI voice.
+        You can paste a ready script here, or use “Improve My Idea” first.
+      </p>
+
+      <div class="voice-controls">
+        <select id="voiceSelect">
+          <option value="Kore">Kore — Clear & natural</option>
+          <option value="Puck">Puck — Friendly & energetic</option>
+          <option value="Charon">Charon — Deep & confident</option>
+          <option value="Fenrir">Fenrir — Strong & dramatic</option>
+        </select>
+
+        <button class="btn" type="button" onclick="prepareVoiceScript()">
+          ✨ Improve Script
+        </button>
+      </div>
+
+      <button
+        class="btn primary voice-main-btn"
+        type="button"
+        onclick="generateVoiceDirect()">
+        🎙️ Generate Voice
+      </button>
+
+      <div id="voiceStudioResult"></div>
     </div>
 
     <div class="brain-result" id="brainResult">
@@ -481,6 +538,8 @@ input,textarea,select{
 <script>
 
 let mode = "signup";
+
+window.addEventListener("DOMContentLoaded", updateCreatorMode);
 
 /* ---------------- AUTH ---------------- */
 
@@ -774,6 +833,186 @@ Create ${contentType} based on the user's original idea above, while improving t
 }
 
 
+
+/* ---------------- VOICE STUDIO ---------------- */
+
+function updateCreatorMode() {
+  const type = document.getElementById("type").value;
+  const workspace = document.getElementById("voiceWorkspace");
+  const createButton = document.querySelector(
+    'button[onclick="generate()"]'
+  );
+
+  if (type === "voice") {
+    workspace.style.display = "block";
+    if (createButton) {
+      createButton.textContent = "🎙️ Generate Voice";
+    }
+  } else {
+    workspace.style.display = "none";
+    if (createButton) {
+      createButton.textContent = "✨ Create";
+    }
+  }
+}
+
+async function prepareVoiceScript() {
+  const input = document.getElementById("prompt");
+  const idea = input.value.trim();
+  const studio = document.getElementById("voiceStudioResult");
+
+  if (!idea || idea.length < 5) {
+    alert("First tell CreatorAI what you want the voice to say.");
+    return;
+  }
+
+  studio.innerHTML =
+    '<p class="loading">🧠 CreatorAI is improving your voice script...</p>';
+
+  try {
+    const response = await fetch("/api/brain", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({
+        type: "voice",
+        idea:
+          "Create a production-ready voice-over script from this idea. " +
+          "Write ONLY the words that should actually be spoken. " +
+          "Do not include labels, scene directions, music instructions or SFX. " +
+          "Use natural spoken language and preserve the original language.\n\n" +
+          idea
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      studio.innerHTML = `<p>${data.error || "Script improvement failed."}</p>`;
+      return;
+    }
+
+    window.creatorVoiceScript = (data.result || "").trim();
+    input.value = window.creatorVoiceScript;
+
+    studio.innerHTML = `
+      <p>✅ Script improved. Review it in the main box, then click Generate Voice.</p>
+    `;
+  } catch (error) {
+    console.error("Voice script error:", error);
+    studio.innerHTML =
+      "<p>CreatorAI could not improve the script right now.</p>";
+  }
+}
+
+async function generateVoiceDirect() {
+  const input = document.getElementById("prompt");
+  const script = input.value.trim();
+  const voice = document.getElementById("voiceSelect").value;
+  const studio = document.getElementById("voiceStudioResult");
+  const result = document.getElementById("genResult");
+
+  if (!script || script.length < 1) {
+    alert("Write or paste the words you want CreatorAI to speak.");
+    return;
+  }
+
+  if (result) {
+    result.innerHTML = "";
+  }
+
+  studio.innerHTML =
+    '<p class="loading">🎙️ Creating your AI voice...</p>';
+
+  window.creatorVoiceScript = script;
+
+  try {
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({
+        text: script,
+        voice
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      studio.innerHTML = `<p>${data.error || "Voice generation failed."}</p>`;
+      return;
+    }
+
+    if (!data.audioBase64) {
+      studio.innerHTML = "<p>CreatorAI returned no audio.</p>";
+      return;
+    }
+
+    const binary = atob(data.audioBase64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], {type:"audio/wav"});
+
+    if (window.creatorVoiceUrl) {
+      URL.revokeObjectURL(window.creatorVoiceUrl);
+    }
+
+    window.creatorVoiceUrl = URL.createObjectURL(blob);
+
+    if (window.creatorAudio) {
+      window.creatorAudio.pause();
+    }
+
+    window.creatorAudio = new Audio(window.creatorVoiceUrl);
+
+    studio.innerHTML = `
+      <h3>🎙️ Voice Ready</h3>
+      <div style="white-space:pre-wrap;line-height:1.6;margin-top:10px;"></div>
+      <audio id="creatorVoiceAudio" class="voice-audio" controls></audio>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:14px;
+      ">
+        <button class="btn" type="button" onclick="playCreatorVoice()">▶️ Play</button>
+        <button class="btn" type="button" onclick="pauseCreatorVoice()">⏸️ Pause</button>
+        <button class="btn" type="button" onclick="stopCreatorVoice()">⏹️ Stop</button>
+        <button class="btn" type="button" onclick="downloadCreatorVoice()">⬇️ Download WAV</button>
+        <button class="btn" type="button" onclick="copyVoiceScript()">📋 Copy Script</button>
+      </div>
+
+      <p style="margin-top:12px">✅ AI voice generated successfully.</p>
+    `;
+
+    const scriptBox = studio.querySelector("div");
+    if (scriptBox) {
+      scriptBox.textContent = script;
+    }
+
+    const audioPlayer = document.getElementById("creatorVoiceAudio");
+    if (audioPlayer) {
+      audioPlayer.src = window.creatorVoiceUrl;
+    }
+
+    studio.scrollIntoView({
+      behavior:"smooth",
+      block:"nearest"
+    });
+
+  } catch (error) {
+    console.error("Direct voice error:", error);
+    studio.innerHTML =
+      "<p>CreatorAI Voice is temporarily unavailable. Please try again later.</p>";
+  }
+}
+
 /* ---------------- GENERATION ---------------- */
 
 async function generate() {
@@ -804,138 +1043,9 @@ async function generate() {
   ========================= */
 
   if (type === "voice") {
-
-    result.innerHTML =
-      '<p class="loading">🎙️ CreatorAI is creating your voice...</p>';
-
-    try {
-
-      const response = await fetch("/api/brain", {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        credentials: "same-origin",
-
-        body: JSON.stringify({
-          type: "voice",
-
-          idea:
-            "Create a production-ready voice-over script from this idea. " +
-            "Write ONLY the words that should actually be spoken. " +
-            "Do not include labels, scene directions, music instructions or SFX. " +
-            "Use natural spoken language and preserve the language of the original content.\n\n" +
-            prompt
-        })
-      });
-
-
-      const data =
-        await response.json();
-
-
-      if (!response.ok) {
-
-        result.innerHTML =
-          `<p>${data.error || "Voice generation failed."}</p>`;
-
-        return;
-      }
-
-
-      window.creatorVoiceScript =
-        data.result || "";
-
-
-      result.innerHTML = `
-
-        <div style="
-          background:#0c0d12;
-          border:1px solid #343744;
-          border-radius:16px;
-          padding:18px;
-          text-align:left;
-        ">
-
-          <h3>🎙️ CreatorAI Voice</h3>
-
-          <div style="
-            white-space:pre-wrap;
-            line-height:1.6;
-            margin-bottom:18px;
-          ">${window.creatorVoiceScript}</div>
-
-
-           <div style="
-          display:flex;
-          flex-wrap:wrap;
-          gap:10px;
-          margin-bottom:14px;
-        ">
-
-          <button
-            class="btn"
-            onclick="generateCreatorVoice()">
-            🎙️ Generate Voice
-          </button>
-
-          <button
-            class="btn"
-            onclick="playCreatorVoice()">
-            ▶️ Play
-          </button>
-
-          <button
-            class="btn"
-            onclick="pauseCreatorVoice()">
-            ⏸️ Pause
-          </button>
-
-          <button
-            class="btn"
-            onclick="resumeCreatorVoice()">
-            ▶️ Resume
-          </button>
-
-          <button
-            class="btn"
-            onclick="stopCreatorVoice()">
-            ⏹️ Stop
-          </button>
-
-          <button
-            class="btn"
-            onclick="downloadCreatorVoice()">
-            ⬇️ Download WAV
-          </button>
-
-          <button
-            class="btn"
-            onclick="copyVoiceScript()">
-            📋 Copy Script
-          </button>
-
-        </div>
-      `;
-
-      return;             
-
-    } catch (error) {
-
-      console.error(
-        "Voice generation error:",
-        error
-      );
-
-      result.innerHTML =
-        "<p>CreatorAI Voice generator is temporarily unavailable.</p>";
-
-      return;
-    }
+    generateVoiceDirect();
+    return;
   }
-
 
   /* =========================
      IMAGE / VIDEO
