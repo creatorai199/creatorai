@@ -888,7 +888,45 @@ window.brainEnhance = async function(){
       return;
     }
 
-    brainText.textContent = data.result || "No creative plan returned.";
+    brainText.innerHTML = `
+      <div style="white-space:pre-wrap;">${data.result || "No creative plan returned."}</div>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:20px;
+      ">
+
+        <button onclick="creatorAction('video')"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          🎬 Create Video
+        </button>
+
+        <button onclick="creatorAction('image')"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          🖼️ Create Image
+        </button>
+
+        <button onclick="creatorAction('voice')"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          🎙️ Create Voice
+        </button>
+
+        <button onclick="creatorAction('caption')"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          📝 Create Caption
+        </button>
+
+        <button onclick="copyBrainPlan()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          📋 Copy Full Plan
+        </button>
+
+      </div>
+    `;
+
+    window.creatorBrainPlan = data.result || "";
 
     window.scrollTo({
       top: result.getBoundingClientRect().top + window.scrollY - 100,
@@ -902,6 +940,44 @@ window.brainEnhance = async function(){
   }
 };
 
+window.copyBrainPlan = function(){
+  if (!window.creatorBrainPlan) return;
+
+  navigator.clipboard.writeText(window.creatorBrainPlan)
+    .then(() => alert("✅ Full CreatorAI plan copied!"))
+    .catch(() => alert("Could not copy the plan."));
+};
+
+window.creatorAction = function(action){
+
+  if (action === "caption") {
+    alert(
+      "📝 Caption mode selected.\n\nThe next CreatorAI upgrade will generate the caption automatically from this Brain plan."
+    );
+    return;
+  }
+
+  if (action === "video") {
+    alert(
+      "🎬 Video creation selected.\n\nVideo generation will be connected to the CreatorAI video engine next."
+    );
+    return;
+  }
+
+  if (action === "image") {
+    alert(
+      "🖼️ Image creation selected.\n\nImage generation will be connected to the CreatorAI image engine next."
+    );
+    return;
+  }
+
+  if (action === "voice") {
+    alert(
+      "🎙️ Voice creation selected.\n\nVoice generation will be connected to the CreatorAI voice engine next."
+    );
+    return;
+  }
+};
 </script>
 
 </body>
