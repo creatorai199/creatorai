@@ -535,6 +535,68 @@ app.post("/api/verify-subscription", auth, async (req, res) => {
 ========================= */
 
 
+// =========================
+// OPTIONAL CLAUDE PROVIDER
+// =========================
+
+async function callClaude(systemPrompt, userPrompt) {
+  const response = await fetch(
+    "https://api.anthropic.com/v1/messages",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 3000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  // Normalize Claude's response so the existing
+  // CreatorAI Brain response handling can use it.
+  if (response.ok && data?.content?.length) {
+    const text = data.content
+      .map((part) => part.text || "")
+      .join("")
+      .trim();
+
+    return {
+      response,
+      data: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+  }
+
+  return {
+    response,
+    data,
+  };
+}
+
 app.post("/api/brain", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
@@ -668,40 +730,76 @@ Create the best possible CreatorAI production plan from this thought.
 // CREATORAI MODEL ROUTER
 // =========================
 
+// =========================
+// CREATORAI MULTI-MODEL ROUTER
+// =========================
+
 const contentText = `${idea} ${type}`.toLowerCase();
 
-let selectedModel = "gemini-3.7-flash";
+let selectedProvider = "gemini";
 
-// CreatorAI currently uses Gemini as the active free provider.
-// Claude can be plugged in later without changing the frontend.
+// Claude is optional.
+// Gemini remains the default provider.
+// Claude activates only when BOTH:
+// 1. CREATORAI_BRAIN_PROVIDER = "claude"
+// 2. ANTHROPIC_API_KEY exists
 
 if (
-  contentText.includes("comedy") ||
-  contentText.includes("funny") ||
-  contentText.includes("punjabi") ||
-  contentText.includes("hindi") ||
-  contentText.includes("story") ||
-  contentText.includes("script") ||
-  contentText.includes("emotional")
+  process.env.CREATORAI_BRAIN_PROVIDER === "claude" &&
+  process.env.ANTHROPIC_API_KEY
 ) {
-  selectedModel = "gemini-3.7-flash";
+  selectedProvider = "claude";
 }
 
-console.log("CreatorAI selected model:", selectedModel);
+console.log(
+  "CreatorAI selected provider:",
+  selectedProvider
+);
 
-let result = await callGemini(selectedModel);
+let result;
 
-// Automatic Gemini fallback
-if (
-  !result.response.ok &&
-  [429, 500, 502, 503, 504].includes(result.response.status)
-) {
-  console.log(
-    `Primary model unavailable (${result.response.status}). Trying Gemini 3.6 Flash...`
+// =========================
+// CLAUDE
+// =========================
+
+if (selectedProvider === "claude") {
+  result = await callClaude(
+    systemPrompt,
+    userPrompt
   );
 
-  result = await callGemini("gemini-3.6-flash");
+  // If Claude fails, automatically fall back to Gemini.
+  if (!result.response.ok) {
+    console.log(
+      `Claude unavailable (${result.response.status}). Falling back to Gemini 3.7 Flash...`
+    );
+
+    result = await callGemini("gemini-3.7-flash");
+  }
 }
+
+// =========================
+// GEMINI
+// =========================
+
+else {
+  result = await callGemini("gemini-3.7-flash");
+
+  // Automatic Gemini fallback
+  if (
+    !result.response.ok &&
+    [429, 500, 502, 503, 504].includes(
+      result.response.status
+    )
+  ) {
+    console.log(
+      `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 3.6 Flash...`
+    );
+
+    result = await callGemini("gemini-3.6-flash");
+  }
+}
+  
     if (!result.response.ok) {
       console.error("Gemini Brain error:", result.data);
 
