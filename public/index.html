@@ -1285,6 +1285,20 @@ window.copyVoiceScript = function(){
       alert("Could not copy the voice script.");
     });
 };
+window.copyVideoPlan = function(){
+  if (!window.creatorVideoPlan) {
+    alert("No video package available.");
+    return;
+  }
+
+  navigator.clipboard.writeText(window.creatorVideoPlan)
+    .then(() => {
+      alert("✅ Video package copied!");
+    })
+    .catch(() => {
+      alert("Could not copy the video package.");
+    });
+};
 </script>
 
 </body>
