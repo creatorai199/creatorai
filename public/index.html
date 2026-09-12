@@ -852,7 +852,55 @@ async function generate() {
 
 /* ---------------- STARTUP ---------------- */
 
-window.brainEnhance = function(){    const input = document.getElementById("prompt");   const result = document.getElementById("brainResult");   const brainText = document.getElementById("brainText");   const type = document.getElementById("type").value;    const idea = input.value.trim();    if (!idea) {     alert("First tell CreatorAI what you want to create.");     return;   }    let language = "universal";   if (/punjabi|punjab|jatt|ji|ve|ni|sardar/i.test(idea)) {     language = "Punjabi";   } else if (/hindi|india|desi|hindustani/i.test(idea)) {     language = "Hindi";   }    let duration = type === "video" ? "20–30 seconds" : "short-form";    let hook = "";    if (/funny|comedy|husband|wife|shopping|joke/i.test(idea)) {     hook = "Start with an unexpected funny moment that immediately creates curiosity.";   } else if (/sad|heartbreak|love|cheat|betray/i.test(idea)) {     hook = "Start with an emotional line that creates instant curiosity and tension.";   } else if (/motivat|success|business|money|career/i.test(idea)) {     hook = "Start with a bold statement or surprising fact that makes people stop scrolling.";   } else {     hook = "Start with a strong curiosity-driven hook that makes the viewer want to know what happens next.";   }    const plan = `CREATORAI BRAIN — CREATOR PLAN  🎯 ORIGINAL IDEA ${idea}  🧠 UNDERSTANDING CreatorAI understands this as a ${type} concept for ${language}-speaking or relevant audiences.  🔥 HOOK ${hook}  🎬 CORE CONCEPT Turn the original idea into a simple, highly relatable story with a clear beginning, escalation and payoff.  ⏱️ FORMAT ${duration}  📽️ SCENE PLAN Scene 1 — HOOK Open immediately with the most interesting or surprising moment.  Scene 2 — SETUP Introduce the characters, situation or problem quickly.  Scene 3 — ESCALATION Make the situation more interesting, funny, emotional or surprising.  Scene 4 — PAYOFF Deliver the main reveal, joke, emotional moment or useful takeaway.  Scene 5 — END Finish with a memorable final line or visual.  🎙️ SCRIPT DIRECTION Use natural conversational language. Keep every line short and easy to understand. Remove unnecessary explanation and keep the story moving.  📱 SOCIAL OPTIMIZATION • Strong opening in the first 2 seconds • Fast pacing • Clear visual storytelling • Relatable situation • Memorable ending • Designed for vertical short-form content  📝 CAPTION ${idea}  #CreatorAI #Shorts #AIContent #ContentCreator  🚀 NEXT STEP CreatorAI can now use this creative plan as the foundation for production.`;    brainText.textContent = plan;   result.style.display = "block";    window.scrollTo({     top: result.getBoundingClientRect().top + window.scrollY - 100,     behavior: "smooth"   }); };  loadMe();
+window.brainEnhance = async function(){
+  const input = document.getElementById("prompt");
+  const result = document.getElementById("brainResult");
+  const brainText = document.getElementById("brainText");
+  const type = document.getElementById("type").value;
+  const idea = input.value.trim();
+
+  if (!idea) {
+    alert("First tell CreatorAI what you want to create.");
+    return;
+  }
+
+  brainText.textContent = "🧠 CreatorAI Brain is thinking...";
+  result.style.display = "block";
+
+  try {
+    const response = await fetch("/api/brain", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        idea,
+        type
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      brainText.textContent =
+        data.error || "CreatorAI Brain could not process this idea.";
+      return;
+    }
+
+    brainText.textContent = data.result || "No creative plan returned.";
+
+    window.scrollTo({
+      top: result.getBoundingClientRect().top + window.scrollY - 100,
+      behavior: "smooth"
+    });
+
+  } catch (error) {
+    console.error("Brain error:", error);
+    brainText.textContent =
+      "CreatorAI Brain is temporarily unavailable. Please try again.";
+  }
+};
 
 </script>
 
