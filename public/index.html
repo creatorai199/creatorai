@@ -1101,12 +1101,76 @@ window.creatorAction = async function(action){
 
   return;
 }
-  if (action === "voice") {
-    alert(
-      "🎙️ Voice creation selected.\n\nVoice generation will be connected to the CreatorAI voice engine next."
-    );
+if (action === "voice") {
+
+  const result = document.getElementById("brainResult");
+  const brainText = document.getElementById("brainText");
+
+  if (!window.creatorBrainPlan) {
+    alert("First generate a Brain plan.");
     return;
   }
+
+  brainText.textContent = "🎙️ CreatorAI is creating your voice script...";
+
+  try {
+
+    const response = await fetch("/api/brain", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        type: "voice",
+        idea:
+          "Turn this CreatorAI production plan into a voice-over production script. " +
+          "Write the exact spoken dialogue/narration, identify male/female voices where appropriate, " +
+          "describe emotion, tone, pacing, pauses, emphasis and delivery. " +
+          "Use natural conversational language matching the content. " +
+          "Return a production-ready voice script.\n\n" +
+          window.creatorBrainPlan
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      brainText.textContent =
+        data.error || "Voice script generation failed.";
+      return;
+    }
+
+    window.creatorVoiceScript = data.result || "";
+
+    brainText.innerHTML = `
+      <h3>🎙️ CreatorAI Voice Script</h3>
+
+      <div style="white-space:pre-wrap;">${window.creatorVoiceScript}</div>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:18px;
+      ">
+        <button onclick="copyVoiceScript()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          📋 Copy Voice Script
+        </button>
+      </div>
+    `;
+
+  } catch (error) {
+
+    console.error("Voice script error:", error);
+
+    brainText.textContent =
+      "CreatorAI Voice generator is temporarily unavailable.";
+  }
+
+  return;
+}  
 };
  window.copyCaption = function(){
   if (!window.creatorCaption) {
@@ -1134,6 +1198,20 @@ window.copyImagePrompt = function(){
     })
     .catch(() => {
       alert("Could not copy the image prompt.");
+    });
+};
+window.copyVoiceScript = function(){
+  if (!window.creatorVoiceScript) {
+    alert("No voice script available.");
+    return;
+  }
+
+  navigator.clipboard.writeText(window.creatorVoiceScript)
+    .then(() => {
+      alert("✅ Voice script copied!");
+    })
+    .catch(() => {
+      alert("Could not copy the voice script.");
     });
 };
 </script>
