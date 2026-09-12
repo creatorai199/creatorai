@@ -530,6 +530,174 @@ app.post("/api/verify-subscription", auth, async (req, res) => {
    AI IMAGE GENERATION
 ========================= */
 
+/* =========================
+   CREATORAI BRAIN — GEMINI
+========================= */
+
+app.post("/api/brain", auth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+
+    if (!user || user.plan !== "pro") {
+      return res.status(403).json({
+        error: "Creator Pro is required. Upgrade for ₹199/month.",
+      });
+    }
+
+    const { idea, type = "video" } = req.body || {};
+
+    if (!idea || idea.trim().length < 5) {
+      return res.status(400).json({
+        error: "Tell CreatorAI what you want to create.",
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({
+        error: "Gemini AI is not configured.",
+      });
+    }
+
+    const systemPrompt = `
+You are CreatorAI Brain — an expert AI creative director.
+
+Your job is NOT simply to rewrite the user's idea.
+
+You must understand the user's intent, audience, language, emotion,
+platform and desired outcome, then turn the thought into a production-ready
+content concept.
+
+CreatorAI should feel like the user is talking to an intelligent creative
+partner.
+
+For every idea, intelligently determine:
+
+1. What the user actually wants.
+2. The likely target audience.
+3. The language and cultural context.
+4. The best content format.
+5. A powerful opening hook.
+6. The story/concept.
+7. A complete short-form script where appropriate.
+8. Scene-by-scene visual direction.
+9. Dialogue and voice direction.
+10. Music/SFX direction.
+11. Camera and editing direction.
+12. Caption.
+13. Title options.
+14. Relevant hashtags.
+15. A production prompt that can later be passed to AI video/image/audio models.
+
+For short videos, prioritize:
+- first 1–2 second hook
+- fast pacing
+- curiosity
+- emotional or comedic payoff
+- relatable situations
+- strong ending
+- vertical/mobile-first storytelling
+
+For Punjabi or Hindi content, use natural conversational language.
+Do not translate awkwardly from English.
+
+For comedy, create an actual joke/story with setup, escalation and payoff.
+
+For emotional content, create emotional progression rather than generic
+motivational language.
+
+For educational content, make the explanation simple and engaging.
+
+Never promise that content will go viral. Instead optimize it using proven
+short-form storytelling principles.
+
+Do not copy copyrighted characters, scripts, songs or creators.
+Create original concepts.
+
+Return a clean, highly useful CreatorAI production plan.
+`;
+
+    const userPrompt = `
+CONTENT TYPE: ${type}
+
+USER'S ORIGINAL THOUGHT:
+${idea}
+
+Create the best possible CreatorAI production plan from this thought.
+`;
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text: systemPrompt,
+              },
+            ],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: userPrompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            
+            maxOutputTokens: 3000,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini Brain error:", data);
+
+      return res.status(502).json({
+        error:
+          data?.error?.message ||
+          "Gemini could not process the idea.",
+      });
+    }
+
+    const text =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("")
+        .trim();
+
+    if (!text) {
+      return res.status(502).json({
+        error: "Gemini returned no creative plan.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      status: "completed",
+      type,
+      idea,
+      result: text,
+    });
+  } catch (error) {
+    console.error("CreatorAI Brain error:", error);
+
+    return res.status(500).json({
+      error: "CreatorAI Brain is temporarily unavailable.",
+    });
+  }
+});
 app.post("/api/generate", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
