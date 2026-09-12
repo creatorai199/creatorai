@@ -1503,6 +1503,11 @@ if (action === "voice") {
           ▶️ Resume
         </button>
 
+        <button onclick="recordCreatorVoice()"
+  style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+  🎙️ Record & Download
+</button>
+
         <button onclick="stopCreatorVoice()"
           style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
           ⏹️ Stop
@@ -1737,6 +1742,118 @@ window.copyVideoPlan = function(){
     .catch(() => {
       alert("Could not copy the video package.");
     });
+};
+window.recordCreatorVoice = async function(){
+
+  if (!window.creatorVoiceScript) {
+    alert("No voice script available.");
+    return;
+  }
+
+  if (!navigator.mediaDevices ||
+      !navigator.mediaDevices.getDisplayMedia) {
+
+    alert("Audio recording is not supported in this browser.");
+    return;
+  }
+
+  try {
+
+    alert("Select this browser tab and enable Share tab audio.");
+
+    const stream =
+      await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
+
+    const audioTracks =
+      stream.getAudioTracks();
+
+    if (!audioTracks.length) {
+
+      stream.getTracks().forEach(track =>
+        track.stop()
+      );
+
+      alert(
+        "Tab audio was not shared. Please try again and enable Share tab audio."
+      );
+
+      return;
+    }
+
+    const audioStream =
+      new MediaStream(audioTracks);
+
+    const recorder =
+      new MediaRecorder(audioStream);
+
+    const chunks = [];
+
+    recorder.ondataavailable = function(event){
+
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+
+    };
+
+    recorder.onstop = function(){
+
+      const blob =
+        new Blob(
+          chunks,
+          { type: recorder.mimeType }
+        );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const a =
+        document.createElement("a");
+
+      a.href = url;
+
+      a.download =
+        "creatorai-voice.webm";
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+      URL.revokeObjectURL(url);
+
+      stream.getTracks().forEach(track =>
+        track.stop()
+      );
+
+      alert("✅ Voice recording downloaded!");
+
+    };
+
+    recorder.start();
+
+    playCreatorVoice();
+
+    window.creatorRecorder =
+      recorder;
+
+  } catch(error) {
+
+    console.error(
+      "Voice recording error:",
+      error
+    );
+
+    alert(
+      "Voice recording was cancelled or unavailable."
+    );
+
+  }
+
 };
 </script>
 
