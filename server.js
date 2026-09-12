@@ -563,22 +563,19 @@ You are CreatorAI Brain — an expert AI creative director.
 
 Your job is NOT simply to rewrite the user's idea.
 
-You must understand the user's intent, audience, language, emotion,
-platform and desired outcome, then turn the thought into a production-ready
+Understand the user's intent, audience, language, emotion, platform
+and desired outcome, then turn the thought into a production-ready
 content concept.
 
-CreatorAI should feel like the user is talking to an intelligent creative
-partner.
-
-For every idea, intelligently determine:
+For every idea determine:
 
 1. What the user actually wants.
-2. The likely target audience.
-3. The language and cultural context.
-4. The best content format.
-5. A powerful opening hook.
-6. The story/concept.
-7. A complete short-form script where appropriate.
+2. Target audience.
+3. Language and cultural context.
+4. Best content format.
+5. Powerful opening hook.
+6. Story/concept.
+7. Complete short-form script where appropriate.
 8. Scene-by-scene visual direction.
 9. Dialogue and voice direction.
 10. Music/SFX direction.
@@ -586,9 +583,9 @@ For every idea, intelligently determine:
 12. Caption.
 13. Title options.
 14. Relevant hashtags.
-15. A production prompt that can later be passed to AI video/image/audio models.
+15. Production prompt for future AI video/image/audio models.
 
-For short videos, prioritize:
+For short videos prioritize:
 - first 1–2 second hook
 - fast pacing
 - curiosity
@@ -598,7 +595,6 @@ For short videos, prioritize:
 - vertical/mobile-first storytelling
 
 For Punjabi or Hindi content, use natural conversational language.
-Do not translate awkwardly from English.
 
 For comedy, create an actual joke/story with setup, escalation and payoff.
 
@@ -607,7 +603,7 @@ motivational language.
 
 For educational content, make the explanation simple and engaging.
 
-Never promise that content will go viral. Instead optimize it using proven
+Never promise that content will go viral. Optimize using proven
 short-form storytelling principles.
 
 Do not copy copyrighted characters, scripts, songs or creators.
@@ -625,54 +621,75 @@ ${idea}
 Create the best possible CreatorAI production plan from this thought.
 `;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text: systemPrompt,
-              },
-            ],
+    async function callGemini(model) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": process.env.GEMINI_API_KEY,
           },
-          contents: [
-            {
-              role: "user",
+          body: JSON.stringify({
+            systemInstruction: {
               parts: [
                 {
-                  text: userPrompt,
+                  text: systemPrompt,
                 },
               ],
             },
-          ],
-          generationConfig: {
-            
-            maxOutputTokens: 3000,
-          },
-        }),
-      }
-    );
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: userPrompt,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              maxOutputTokens: 3000,
+            },
+          }),
+        }
+      );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      console.error("Gemini Brain error:", data);
+      return {
+        response,
+        data,
+      };
+    }
+
+    // FIRST TRY — Gemini 3.7 Flash
+    let result = await callGemini("gemini-3.7-flash");
+
+    // AUTOMATIC FALLBACK — Gemini 2.5 Flash
+    if (
+      !result.response.ok &&
+      [429, 500, 502, 503, 504].includes(result.response.status)
+    ) {
+      console.log(
+        `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 2.5 Flash...`
+      );
+
+      result = await callGemini("gemini-2.5-flash");
+    }
+
+    if (!result.response.ok) {
+      console.error("Gemini Brain error:", result.data);
 
       return res.status(502).json({
         error:
-          data?.error?.message ||
-          "Gemini could not process the idea.",
+          result.data?.error?.message ||
+          "CreatorAI Brain is temporarily unavailable. Please try again.",
       });
     }
 
     const text =
-      data?.candidates?.[0]?.content?.parts
+      result.data?.candidates?.[0]?.content?.parts
         ?.map((part) => part.text || "")
         .join("")
         .trim();
@@ -690,6 +707,7 @@ Create the best possible CreatorAI production plan from this thought.
       idea,
       result: text,
     });
+
   } catch (error) {
     console.error("CreatorAI Brain error:", error);
 
@@ -697,8 +715,7 @@ Create the best possible CreatorAI production plan from this thought.
       error: "CreatorAI Brain is temporarily unavailable.",
     });
   }
-});
-app.post("/api/generate", auth, async (req, res) => {
+});app.post("/api/generate", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
 
