@@ -798,27 +798,221 @@ async function generate() {
     return;
   }
 
+
+  /* =========================
+     VOICE
+  ========================= */
+
+  if (type === "voice") {
+
+    result.innerHTML =
+      '<p class="loading">🎙️ CreatorAI is creating your voice...</p>';
+
+    try {
+
+      const response = await fetch("/api/brain", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        credentials: "same-origin",
+
+        body: JSON.stringify({
+          type: "voice",
+
+          idea:
+            "Create a production-ready voice-over script from this idea. " +
+            "Write ONLY the words that should actually be spoken. " +
+            "Do not include labels, scene directions, music instructions or SFX. " +
+            "Use natural spoken language and preserve the language of the original content.\n\n" +
+            prompt
+        })
+      });
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        result.innerHTML =
+          `<p>${data.error || "Voice generation failed."}</p>`;
+
+        return;
+      }
+
+
+      window.creatorVoiceScript =
+        data.result || "";
+
+
+      result.innerHTML = `
+
+        <div style="
+          background:#0c0d12;
+          border:1px solid #343744;
+          border-radius:16px;
+          padding:18px;
+          text-align:left;
+        ">
+
+          <h3>🎙️ CreatorAI Voice</h3>
+
+          <div style="
+            white-space:pre-wrap;
+            line-height:1.6;
+            margin-bottom:18px;
+          ">${window.creatorVoiceScript}</div>
+
+
+          <div style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            margin-bottom:14px;
+          ">
+
+            <button
+              class="btn"
+              onclick="playCreatorVoice()">
+              ▶️ Play Voice
+            </button>
+
+            <button
+              class="btn"
+              onclick="pauseCreatorVoice()">
+              ⏸️ Pause
+            </button>
+
+            <button
+              class="btn"
+              onclick="resumeCreatorVoice()">
+              ▶️ Resume
+            </button>
+
+            <button
+              class="btn"
+              onclick="stopCreatorVoice()">
+              ⏹️ Stop
+            </button>
+
+            <button
+              class="btn"
+              onclick="copyVoiceScript()">
+              📋 Copy Script
+            </button>
+
+          </div>
+
+
+          <div style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            align-items:center;
+          ">
+
+            <label>
+              Voice:
+
+              <select
+                id="creatorVoiceSelect"
+                style="width:auto;margin:0 5px;padding:8px;">
+              </select>
+
+            </label>
+
+
+            <label>
+              Speed:
+
+              <select
+                id="creatorVoiceRate"
+                style="width:auto;margin:0 5px;padding:8px;">
+
+                <option value="0.75">
+                  0.75×
+                </option>
+
+                <option value="0.9">
+                  0.9×
+                </option>
+
+                <option value="1" selected>
+                  1×
+                </option>
+
+                <option value="1.1">
+                  1.1×
+                </option>
+
+                <option value="1.25">
+                  1.25×
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+        </div>
+      `;
+
+
+      setupCreatorVoices();
+
+      return;
+
+
+    } catch (error) {
+
+      console.error(
+        "Voice generation error:",
+        error
+      );
+
+      result.innerHTML =
+        "<p>CreatorAI Voice generator is temporarily unavailable.</p>";
+
+      return;
+    }
+  }
+
+
+  /* =========================
+     IMAGE / VIDEO
+  ========================= */
+
   result.innerHTML =
     '<p class="loading">✨ CreatorAI is creating...</p>';
+
 
   try {
 
     const r = await fetch(
       "/api/generate",
       {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
         },
-        body:JSON.stringify({
+
+        body: JSON.stringify({
           prompt,
           type
         })
       }
     );
 
+
     const d =
       await r.json();
+
 
     if (!r.ok) {
 
@@ -828,27 +1022,62 @@ async function generate() {
       return;
     }
 
+
     if (d.imageUrl) {
 
       result.innerHTML = `
+
         <p>✨ Your image is ready</p>
-        <img src="${d.imageUrl}" alt="CreatorAI generated image">
+
+        <img
+          src="${d.imageUrl}"
+          alt="CreatorAI generated image">
+
       `;
 
       return;
     }
 
+
+    if (d.videoUrl) {
+
+      result.innerHTML = `
+
+        <p>🎬 Your video is ready</p>
+
+        <video
+          src="${d.videoUrl}"
+          controls
+          playsinline
+          style="
+            width:100%;
+            max-width:420px;
+            border-radius:16px;
+          ">
+        </video>
+
+      `;
+
+      return;
+    }
+
+
     result.innerHTML =
       `<p>${d.message || "Creation completed."}</p>`;
 
+
   } catch(error) {
+
+    console.error(
+      "Generation error:",
+      error
+    );
 
     result.innerHTML =
       "<p>Unable to generate right now. Please try again.</p>";
 
   }
 }
-
 
 /* ---------------- STARTUP ---------------- */
 
