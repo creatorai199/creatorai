@@ -1644,7 +1644,20 @@ window.playCreatorVoice = function(){
 
   window.creatorSpeech = utterance;
 
-  speechSynthesis.speak(utterance);
+  utterance.onend = function(){
+
+    if (
+      window.creatorRecorder &&
+      window.creatorRecorder.state === "recording"
+    ) {
+
+      window.creatorRecorder.stop();
+
+    }
+
+  };
+
+  speechSynthesis.speak(utterance);  
 };
 
 
