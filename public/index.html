@@ -1,50 +1,860 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CreatorAI</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CreatorAI — Create Without the Hard Work</title>
+
 <style>
-body{margin:0;background:#08090d;color:#f7f7fa;font:15px system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}
-nav{height:68px;border-bottom:1px solid #242631;display:flex;align-items:center;justify-content:space-between;padding:0 6%;position:sticky;top:0;background:#08090dee;backdrop-filter:blur(15px);z-index:5}
-.logo{font-size:21px;font-weight:800}.logo i{font-style:normal;color:#9b7cff}.links{display:flex;gap:22px;color:#aaa}.btn{padding:12px 18px;border-radius:11px;border:1px solid #30333e;background:#171922;color:white;font-weight:750;cursor:pointer}.primary{background:#9b7cff;border-color:#9b7cff}
-.hero{padding:75px 20px 55px;text-align:center;max-width:900px;margin:auto}.pill{display:inline-block;padding:7px 12px;border-radius:99px;background:#171322;border:1px solid #342d4c;color:#c8b9ff}h1{font-size:clamp(48px,8vw,78px);line-height:.95;letter-spacing:-4px;margin:20px 0}.grad{background:linear-gradient(90deg,#fff,#a88aff,#71d9ff);color:transparent;background-clip:text}.hero p{color:#a1a4b0;font-size:18px;line-height:1.6}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:28px}
-.section{max-width:1100px;margin:auto;padding:60px 6%}.section h2{text-align:center;font-size:36px}.muted{text-align:center;color:#90939f}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.box{background:#111219;border:1px solid #292c37;border-radius:18px;padding:23px}.box p{color:#9295a1;line-height:1.5}.price{max-width:460px;margin:25px auto;background:#111219;border:2px solid #9b7cff;border-radius:22px;padding:30px}.price strong{font-size:52px}.price del{color:#6f727d}.price li{margin:10px 0;color:#c6c7ce}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:20px;z-index:20}.modal>div{background:#111219;border:1px solid #343744;border-radius:20px;padding:28px;width:min(430px,100%)}input,textarea{width:100%;padding:13px;margin:7px 0 12px;border-radius:10px;border:1px solid #30333d;background:#0b0c10;color:white}.dash{display:none}.dash .box{margin-top:20px}.status{padding:10px;border-radius:10px;background:#171922;color:#bbb}.faq{max-width:750px;margin:auto}.faq details{border-bottom:1px solid #282b35;padding:18px 0}.faq p{color:#9295a1;line-height:1.6}
-@media(max-width:750px){.links{display:none}.grid{grid-template-columns:1fr}.hero{padding-top:55px}}
-</style></head><body>
-<nav><div class="logo">Creator<i>AI</i></div><div class="links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div><div><button class="btn" id="loginBtn" onclick="openAuth()">Login</button></div></nav>
-<header class="hero"><span class="pill">✨ Launch price: ₹199/month</span><h1>Create content.<br><span class="grad">Without the hard work.</span></h1><p>AI video, images, voiceovers and scripts in one creator workspace.</p><div class="actions"><button class="btn primary" onclick="openAuth('signup')">Start Creating for ₹199 →</button><button class="btn" onclick="document.querySelector('#features').scrollIntoView({behavior:'smooth'})">Explore</button></div></header>
-<section class="section" id="features"><h2>Everything creators need</h2><p class="muted">One simple dashboard for your content workflow.</p><div class="grid">
-<div class="box">🎬<h3>AI Video</h3><p>Turn prompts and images into short-form video concepts.</p></div><div class="box">🖼️<h3>AI Images</h3><p>Create thumbnails, characters, posters and social visuals.</p></div><div class="box">🎙️<h3>AI Voice</h3><p>Generate narration and character voiceovers.</p></div>
-</div></section>
-<section class="section" id="pricing"><h2>Start for ₹199</h2><p class="muted">A simple creator subscription.</p><div class="price"><div><del>₹499</del></div><strong>₹199</strong> <span>/month</span><ul><li>AI video workspace</li><li>AI image generation</li><li>AI voice & scripts</li><li>Creator dashboard</li><li>Commercial-use workflow</li></ul><button class="btn primary" style="width:100%" onclick="openAuth('signup')">Get Creator Pro →</button></div></section>
-<section class="section dash" id="dashboard"><h2>Your Creator Dashboard</h2><div class="box"><div id="userStatus" class="status">Loading...</div><br><button class="btn primary" onclick="startSubscription()">Upgrade to Pro — ₹199/month</button></div><div class="box"><h3>Generate</h3><select id="type" style="padding:12px;background:#0b0c10;color:white;border:1px solid #30333d;border-radius:10px"><option value="video">Video</option><option value="image">Image</option><option value="voice">Voice</option></select><textarea id="prompt" rows="5" placeholder="Describe what you want to create..."></textarea><button class="btn primary" onclick="generate()">Generate</button><p id="genResult" class="muted"></p></div></section>
-<section class="section" id="faq"><h2>FAQ</h2><div class="faq"><details><summary>How does ₹199 work?</summary><p>Creator Pro is configured as a recurring monthly subscription through Razorpay. The final amount and billing behavior are controlled by your Razorpay plan.</p></details><details><summary>Can customers pay by UPI?</summary><p>Razorpay supports Indian payment methods including UPI depending on the checkout/product configuration.</p></details><details><summary>Is AI generation already connected?</summary><p>The app includes the secure generation endpoint and dashboard. You still need to connect an AI video/image/voice provider and its API key on the server.</p></details></div></section>
-<div class="modal" id="auth"><div><h2 id="authTitle">Create account</h2><input id="email" type="email" placeholder="Email"><input id="password" type="password" placeholder="Password (8+ characters)"><button class="btn primary" style="width:100%" onclick="submitAuth()">Continue</button><p id="authMsg" class="muted"></p><button class="btn" onclick="closeAuth()">Close</button></div></div>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-let mode="signup";
-function openAuth(m="signup"){mode=m;document.getElementById("auth").style.display="flex";document.getElementById("authTitle").textContent=m==="signup"?"Create your account":"Login";}
-function closeAuth(){document.getElementById("auth").style.display="none"}
-async function submitAuth(){let email=document.getElementById("email").value,password=document.getElementById("password").value;let r=await fetch("/api/"+mode,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});let d=await r.json();document.getElementById("authMsg").textContent=d.error||"Success";if(r.ok){closeAuth();loadMe();document.getElementById("dashboard").scrollIntoView({behavior:"smooth"})}}
-async function loadMe(){let r=await fetch("/api/me");if(!r.ok)return;let u=await r.json();document.getElementById("dashboard").style.display="block";document.getElementById("loginBtn").textContent=u.email;document.getElementById("userStatus").textContent=`${u.email} • ${u.plan.toUpperCase()} • subscription: ${u.subscription_status}`;}
-async function startSubscription(){
- let r=await fetch("/api/create-subscription",{method:"POST"});
- let d=await r.json();
- if(!r.ok)return alert(d.error||"Could not create subscription.");
- const options={
-  key:d.keyId,
-  subscription_id:d.subscriptionId,
-  name:"CreatorAI",
-  description:"CreatorAI Pro — ₹199/month",
-  theme:{color:"#9b7cff"},
-  handler:async function(response){
-   const vr=await fetch("/api/verify-subscription",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(response)});
-   const vd=await vr.json();
-   if(vr.ok){alert("Payment verified! Creator Pro is now active.");loadMe();}
-   else alert(vd.error||"Payment verification failed.");
-  },
-  modal:{ondismiss:function(){console.log("Razorpay checkout closed");}}
- };
- const rzp=new Razorpay(options);
- rzp.on("payment.failed",function(resp){alert(resp.error?.description||"Payment failed. Please try again.");});
- rzp.open();
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:#08090d;
+  color:#f7f7fa;
+  font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 }
-async function generate(){let prompt=document.getElementById("prompt").value,type=document.getElementById("type").value;let r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,type})});let d=await r.json();document.getElementById("genResult").textContent=d.error||d.message;}
+nav{
+  height:68px;
+  border-bottom:1px solid #242631;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 6%;
+  position:sticky;
+  top:0;
+  background:#08090dee;
+  backdrop-filter:blur(15px);
+  z-index:10
+}
+.logo{font-size:21px;font-weight:800}
+.logo i{font-style:normal;color:#9b7cff}
+.links{display:flex;gap:22px}
+.links a{color:#aaa;text-decoration:none}
+.btn{
+  padding:12px 18px;
+  border-radius:11px;
+  border:1px solid #30333e;
+  background:#171922;
+  color:white;
+  font-weight:750;
+  cursor:pointer
+}
+.btn:hover{transform:translateY(-1px)}
+.primary{background:#9b7cff;border-color:#9b7cff;color:#08090d}
+.hero{
+  padding:75px 20px 55px;
+  text-align:center;
+  max-width:950px;
+  margin:auto
+}
+.pill{
+  display:inline-block;
+  padding:7px 12px;
+  border-radius:99px;
+  background:#171322;
+  border:1px solid #342d4c;
+  color:#c8b9ff
+}
+h1{
+  font-size:clamp(48px,8vw,78px);
+  line-height:.95;
+  letter-spacing:-4px;
+  margin:20px 0
+}
+.grad{
+  background:linear-gradient(90deg,#fff,#a88aff,#71d9ff);
+  color:transparent;
+  background-clip:text;
+  -webkit-background-clip:text
+}
+.hero p{
+  color:#a1a4b0;
+  font-size:18px;
+  line-height:1.6
+}
+.actions{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:28px
+}
+.section{
+  max-width:1100px;
+  margin:auto;
+  padding:60px 6%
+}
+.section h2{text-align:center;font-size:36px}
+.muted{text-align:center;color:#90939f}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px
+}
+.box{
+  background:#111219;
+  border:1px solid #292c37;
+  border-radius:18px;
+  padding:23px
+}
+.box p{color:#9295a1;line-height:1.5}
+.price{
+  max-width:460px;
+  margin:25px auto;
+  background:#111219;
+  border:2px solid #9b7cff;
+  border-radius:22px;
+  padding:30px
+}
+.price strong{font-size:52px}
+.price del{color:#6f727d}
+.price li{margin:10px 0;color:#c6c7ce}
+.modal{
+  position:fixed;
+  inset:0;
+  background:#000a;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:30
+}
+.modal>div{
+  background:#111219;
+  border:1px solid #343744;
+  border-radius:20px;
+  padding:28px;
+  width:min(430px,100%)
+}
+input,textarea,select{
+  width:100%;
+  padding:13px;
+  margin:7px 0 12px;
+  border-radius:10px;
+  border:1px solid #30333d;
+  background:#0b0c10;
+  color:white
+}
+.dash{display:none}
+.dash .box{margin-top:20px}
+.status{
+  padding:12px;
+  border-radius:10px;
+  background:#171922;
+  color:#bbb
+}
+.brain{
+  border:1px solid #42366b;
+  background:linear-gradient(145deg,#111219,#151124)
+}
+.brain-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:22px
+}
+.brain-badge{
+  font-size:12px;
+  padding:5px 9px;
+  border-radius:20px;
+  background:#292044;
+  color:#c8b9ff
+}
+.brain-result{
+  display:none;
+  margin-top:15px;
+  padding:16px;
+  border-radius:13px;
+  background:#0c0d12;
+  border:1px solid #343744
+}
+.brain-result strong{color:#bdaeff}
+.result-text{
+  color:#c6c7ce;
+  line-height:1.6;
+  white-space:pre-wrap
+}
+.tools{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.output{
+  margin-top:20px;
+  text-align:center
+}
+.output img{
+  max-width:100%;
+  border-radius:16px;
+  border:1px solid #30333d
+}
+.faq{max-width:750px;margin:auto}
+.faq details{
+  border-bottom:1px solid #282b35;
+  padding:18px 0
+}
+.faq p{color:#9295a1;line-height:1.6}
+.small{font-size:13px;color:#777b88}
+.loading{opacity:.7}
+@media(max-width:750px){
+  .links{display:none}
+  .grid{grid-template-columns:1fr}
+  .tools{grid-template-columns:1fr}
+  .hero{padding-top:55px}
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <div class="logo">Creator<i>AI</i></div>
+
+  <div class="links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+  </div>
+
+  <div>
+    <button class="btn" id="loginBtn" onclick="openAuth('login')">Login</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="pill">✨ Launch price: ₹199/month</span>
+
+  <h1>
+    Create content.<br>
+    <span class="grad">Without the hard work.</span>
+  </h1>
+
+  <p>
+    Tell CreatorAI what you are thinking.
+    Our creator workspace turns your idea into content.
+  </p>
+
+  <div class="actions">
+    <button class="btn primary" onclick="openAuth('signup')">
+      Start Creating for ₹199 →
+    </button>
+
+    <button class="btn"
+      onclick="document.querySelector('#features').scrollIntoView({behavior:'smooth'})">
+      Explore
+    </button>
+  </div>
+</header>
+
+<section class="section" id="features">
+
+  <h2>Everything creators need</h2>
+  <p class="muted">
+    One simple AI workspace for your entire content workflow.
+  </p>
+
+  <div class="grid">
+
+    <div class="box">
+      🎬
+      <h3>AI Video</h3>
+      <p>
+        Turn simple ideas into short-form video concepts,
+        scripts and production-ready prompts.
+      </p>
+    </div>
+
+    <div class="box">
+      🖼️
+      <h3>AI Images</h3>
+      <p>
+        Create thumbnails, characters, posters,
+        social visuals and creative concepts.
+      </p>
+    </div>
+
+    <div class="box">
+      🎙️
+      <h3>AI Voice</h3>
+      <p>
+        Build narration and character voice workflows
+        for future CreatorAI projects.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section" id="pricing">
+
+  <h2>Start for ₹199</h2>
+  <p class="muted">
+    Simple creator subscription. Cancel according to your subscription terms.
+  </p>
+
+  <div class="price">
+
+    <div><del>₹499</del></div>
+
+    <strong>₹199</strong>
+    <span>/month</span>
+
+    <ul>
+      <li>🧠 CreatorAI Brain</li>
+      <li>🎬 AI video workspace</li>
+      <li>🖼️ AI image generation</li>
+      <li>🎙️ AI voice & scripts</li>
+      <li>🚀 Creator dashboard</li>
+      <li>💼 Commercial-use workflow</li>
+    </ul>
+
+    <button
+      class="btn primary"
+      style="width:100%"
+      onclick="openAuth('signup')">
+      Get Creator Pro →
+    </button>
+
+  </div>
+</section>
+
+<section class="section dash" id="dashboard">
+
+  <h2>Your Creator Dashboard</h2>
+
+  <div class="box">
+
+    <div id="userStatus" class="status">
+      Loading...
+    </div>
+
+    <br>
+
+    <button
+      class="btn primary"
+      onclick="startSubscription()">
+      Upgrade to Pro — ₹199/month
+    </button>
+
+  </div>
+
+  <div class="box brain">
+
+    <div class="brain-title">
+      🧠 CreatorAI Brain
+      <span class="brain-badge">BETA</span>
+    </div>
+
+    <p style="color:#9295a1;line-height:1.6">
+      Don't worry about prompts.
+      Just tell CreatorAI what you want in normal language.
+    </p>
+
+    <textarea
+      id="prompt"
+      rows="6"
+      placeholder="Example: Make a funny Punjabi video about a husband hiding his shopping bill from his wife...">
+    </textarea>
+
+    <div class="tools">
+
+      <select id="type">
+        <option value="video">🎬 Video</option>
+        <option value="image">🖼️ Image</option>
+        <option value="voice">🎙️ Voice</option>
+      </select>
+
+      <button
+        class="btn"
+        onclick="brainEnhance()">
+        🧠 Improve My Idea
+      </button>
+
+    </div>
+
+    <div class="brain-result" id="brainResult">
+
+      <strong>CreatorAI Brain</strong>
+
+      <div
+        id="brainText"
+        class="result-text">
+      </div>
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn primary"
+      style="width:100%"
+      onclick="generate()">
+      ✨ Create
+    </button>
+
+    <div id="genResult" class="output"></div>
+
+  </div>
+
+</section>
+
+<section class="section" id="faq">
+
+  <h2>FAQ</h2>
+
+  <div class="faq">
+
+    <details>
+      <summary>How does ₹199 work?</summary>
+      <p>
+        Creator Pro is configured as a recurring monthly subscription
+        through Razorpay.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can customers pay by UPI?</summary>
+      <p>
+        Razorpay supports Indian payment methods including UPI,
+        depending on the checkout configuration.
+      </p>
+    </details>
+
+    <details>
+      <summary>What is CreatorAI Brain?</summary>
+      <p>
+        CreatorAI Brain is designed to understand a creator's idea
+        instead of forcing the user to learn complicated prompts.
+      </p>
+    </details>
+
+    <details>
+      <summary>Is AI generation connected?</summary>
+      <p>
+        AI image generation is connected through the secure server.
+        Video and voice providers can be added as the platform expands.
+      </p>
+    </details>
+
+  </div>
+
+</section>
+
+<div class="modal" id="auth">
+
+  <div>
+
+    <h2 id="authTitle">Create account</h2>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="Email">
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Password (8+ characters)">
+
+    <button
+      class="btn primary"
+      style="width:100%"
+      onclick="submitAuth()">
+      Continue
+    </button>
+
+    <p id="authMsg" class="muted"></p>
+
+    <button
+      class="btn"
+      onclick="closeAuth()">
+      Close
+    </button>
+
+  </div>
+
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+let mode = "signup";
+
+/* ---------------- AUTH ---------------- */
+
+function openAuth(m="signup") {
+
+  mode = m;
+
+  document.getElementById("auth").style.display = "flex";
+
+  document.getElementById("authTitle").textContent =
+    m === "signup"
+      ? "Create your account"
+      : "Login";
+
+  document.getElementById("authMsg").textContent = "";
+}
+
+function closeAuth() {
+
+  document.getElementById("auth").style.display = "none";
+}
+
+async function submitAuth() {
+
+  const email =
+    document.getElementById("email").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  if (!email || !password) {
+
+    document.getElementById("authMsg").textContent =
+      "Enter your email and password.";
+
+    return;
+  }
+
+  document.getElementById("authMsg").textContent =
+    "Please wait...";
+
+  try {
+
+    const r = await fetch(
+      "/api/" + mode,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          email,
+          password
+        })
+      }
+    );
+
+    const d = await r.json();
+
+    if (!r.ok) {
+
+      document.getElementById("authMsg").textContent =
+        d.error || "Something went wrong.";
+
+      return;
+    }
+
+    closeAuth();
+
+    await loadMe();
+
+    document
+      .getElementById("dashboard")
+      .scrollIntoView({behavior:"smooth"});
+
+  } catch(error) {
+
+    document.getElementById("authMsg").textContent =
+      "Unable to connect. Please try again.";
+
+  }
+}
+
+
+/* ---------------- USER ---------------- */
+
+async function loadMe() {
+
+  try {
+
+    const r = await fetch("/api/me");
+
+    if (!r.ok) return;
+
+    const u = await r.json();
+
+    document.getElementById("dashboard")
+      .style.display = "block";
+
+    document.getElementById("loginBtn")
+      .textContent = u.email;
+
+    document.getElementById("userStatus")
+      .textContent =
+      `${u.email} • ${u.plan.toUpperCase()} • subscription: ${u.subscription_status}`;
+
+  } catch(error) {
+
+    console.log("User check failed", error);
+
+  }
+}
+
+
+/* ---------------- RAZORPAY ---------------- */
+
+async function startSubscription() {
+
+  try {
+
+    const r = await fetch(
+      "/api/create-subscription",
+      {
+        method:"POST"
+      }
+    );
+
+    const d = await r.json();
+
+    if (!r.ok) {
+
+      alert(
+        d.error ||
+        "Could not create subscription."
+      );
+
+      return;
+    }
+
+    const options = {
+
+      key:d.keyId,
+
+      subscription_id:d.subscriptionId,
+
+      name:"CreatorAI",
+
+      description:
+        "CreatorAI Pro — ₹199/month",
+
+      theme:{
+        color:"#9b7cff"
+      },
+
+      handler:async function(response) {
+
+        const vr = await fetch(
+          "/api/verify-subscription",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json"
+            },
+            body:JSON.stringify(response)
+          }
+        );
+
+        const vd = await vr.json();
+
+        if (vr.ok) {
+
+          alert(
+            "Payment verified! Creator Pro is now active."
+          );
+
+          loadMe();
+
+        } else {
+
+          alert(
+            vd.error ||
+            "Payment verification failed."
+          );
+        }
+      },
+
+      modal:{
+        ondismiss:function() {
+          console.log(
+            "Razorpay checkout closed"
+          );
+        }
+      }
+    };
+
+    const rzp =
+      new Razorpay(options);
+
+    rzp.on(
+      "payment.failed",
+      function(resp) {
+
+        alert(
+          resp.error?.description ||
+          "Payment failed. Please try again."
+        );
+
+      }
+    );
+
+    rzp.open();
+
+  } catch(error) {
+
+    alert(
+      "Unable to start payment. Please try again."
+    );
+
+  }
+}
+
+
+/* ---------------- CREATORAI BRAIN ---------------- */
+
+function brainEnhance() {
+
+  const input =
+    document.getElementById("prompt");
+
+  const result =
+    document.getElementById("brainResult");
+
+  const brainText =
+    document.getElementById("brainText");
+
+  const idea =
+    input.value.trim();
+
+  if (!idea) {
+
+    alert(
+      "First tell CreatorAI what you want to create."
+    );
+
+    return;
+  }
+
+  const type =
+    document.getElementById("type").value;
+
+  let contentType =
+    "short-form content";
+
+  if (type === "video")
+    contentType = "a highly engaging short-form video";
+
+  if (type === "image")
+    contentType = "a visually striking AI image";
+
+  if (type === "voice")
+    contentType = "an engaging voiceover";
+
+  const improved =
+`CREATORAI BRAIN
+
+Goal:
+${idea}
+
+Content type:
+${contentType}
+
+Creative direction:
+• Start with a strong attention-grabbing hook.
+• Make the idea simple and immediately understandable.
+• Keep the content entertaining and relatable.
+• Build curiosity and maintain momentum.
+• Use natural language suitable for the target audience.
+• Finish with a memorable payoff or ending.
+
+CreatorAI production idea:
+Create ${contentType} based on the user's original idea above, while improving the storytelling, pacing and presentation without changing the core idea.`;
+
+  brainText.textContent =
+    improved;
+
+  result.style.display =
+    "block";
+
+  input.value =
+    improved;
+}
+
+
+/* ---------------- GENERATION ---------------- */
+
+async function generate() {
+
+  const prompt =
+    document.getElementById("prompt")
+      .value.trim();
+
+  const type =
+    document.getElementById("type")
+      .value;
+
+  const result =
+    document.getElementById("genResult");
+
+  if (!prompt || prompt.length < 5) {
+
+    alert(
+      "Tell CreatorAI what you want to create."
+    );
+
+    return;
+  }
+
+  result.innerHTML =
+    '<p class="loading">✨ CreatorAI is creating...</p>';
+
+  try {
+
+    const r = await fetch(
+      "/api/generate",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          prompt,
+          type
+        })
+      }
+    );
+
+    const d =
+      await r.json();
+
+    if (!r.ok) {
+
+      result.innerHTML =
+        `<p>${d.error || "Generation failed."}</p>`;
+
+      return;
+    }
+
+    if (d.imageUrl) {
+
+      result.innerHTML = `
+        <p>✨ Your image is ready</p>
+        <img src="${d.imageUrl}" alt="CreatorAI generated image">
+      `;
+
+      return;
+    }
+
+    result.innerHTML =
+      `<p>${d.message || "Creation completed."}</p>`;
+
+  } catch(error) {
+
+    result.innerHTML =
+      "<p>Unable to generate right now. Please try again.</p>";
+
+  }
+}
+
+
+/* ---------------- STARTUP ---------------- */
+
 loadMe();
-</script></body></html>
+
+</script>
+
+</body>
+</html>
