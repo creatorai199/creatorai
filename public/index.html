@@ -1024,6 +1024,7 @@ window.creatorAction = async function(action){
 
     return;
   }
+  
   if (action === "video") {
 
   const result = document.getElementById("brainResult");
@@ -1034,11 +1035,17 @@ window.creatorAction = async function(action){
     return;
   }
 
-  brainText.textContent = "🎬 CreatorAI is creating your video production package...";
+  brainText.textContent = "🎬 CreatorAI is generating your video...";
 
   try {
 
-    const response = await fetch("/api/brain", {
+    const videoPrompt =
+      "Create a high-quality vertical 9:16 short-form video based on this CreatorAI production plan. " +
+      "Use consistent characters, cinematic camera movement, natural lighting, appropriate music " +
+      "and sound effects. Make it suitable for social media.\n\n" +
+      window.creatorBrainPlan;
+
+    const response = await fetch("/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1046,32 +1053,43 @@ window.creatorAction = async function(action){
       credentials: "same-origin",
       body: JSON.stringify({
         type: "video",
-        idea:
-          "Turn this CreatorAI production plan into a complete production-ready " +
-          "short-form video package. Include: video concept, duration, 9:16 format, " +
-          "scene-by-scene breakdown with exact timing, visual descriptions, characters, " +
-          "dialogue, voice-over, camera movement, lighting, music, SFX, transitions, " +
-          "on-screen text, editing instructions and a final AI video-generation prompt. " +
-          "Make it suitable for a 20–45 second social-media video. " +
-          "Keep the language and cultural style appropriate to the original idea.\n\n" +
-          window.creatorBrainPlan
+        prompt: videoPrompt
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      brainText.textContent =
-        data.error || "Video production package generation failed.";
+      brainText.innerHTML = `
+        <h3>🎬 Video Generation</h3>
+        <div style="white-space:pre-wrap;">
+          ${data.error || "Video generation failed."}
+        </div>
+      `;
       return;
     }
 
-    window.creatorVideoPlan = data.result || "";
+    if (!data.videoUrl) {
+      brainText.textContent = "AI returned no video.";
+      return;
+    }
+
+    window.creatorVideoUrl = data.videoUrl;
 
     brainText.innerHTML = `
-      <h3>🎬 CreatorAI Video Production Package</h3>
+      <h3>🎬 CreatorAI Video</h3>
 
-      <div style="white-space:pre-wrap;">${window.creatorVideoPlan}</div>
+      <video
+        src="${data.videoUrl}"
+        controls
+        playsinline
+        style="
+          width:100%;
+          max-width:420px;
+          border-radius:16px;
+          margin-top:15px;
+        ">
+      </video>
 
       <div style="
         display:flex;
@@ -1079,10 +1097,20 @@ window.creatorAction = async function(action){
         gap:10px;
         margin-top:18px;
       ">
-        <button onclick="copyVideoPlan()"
-          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
-          📋 Copy Video Package
-        </button>
+        <a
+          href="${data.videoUrl}"
+          target="_blank"
+          rel="noopener"
+          style="
+            display:inline-block;
+            padding:12px 16px;
+            border-radius:12px;
+            text-decoration:none;
+            background:#111;
+            color:#fff;
+          ">
+          🎥 Open Video
+        </a>
       </div>
     `;
 
@@ -1093,7 +1121,7 @@ window.creatorAction = async function(action){
 
   } catch (error) {
 
-    console.error("Video production error:", error);
+    console.error("Video generation error:", error);
 
     brainText.textContent =
       "CreatorAI Video generator is temporarily unavailable.";
@@ -1101,7 +1129,7 @@ window.creatorAction = async function(action){
 
   return;
 }
-
+  
  if (action === "image") {
 
   const result = document.getElementById("brainResult");
