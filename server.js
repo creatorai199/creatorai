@@ -837,7 +837,8 @@ else {
       error: "CreatorAI Brain is temporarily unavailable.",
     });
   }
-   
+ });
+
 app.post("/api/generate", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
