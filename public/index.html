@@ -1200,6 +1200,7 @@ window.creatorAction = async function(action){
 
   return;
 }
+  
 if (action === "voice") {
 
   const result = document.getElementById("brainResult");
@@ -1223,11 +1224,11 @@ if (action === "voice") {
       body: JSON.stringify({
         type: "voice",
         idea:
-          "Turn this CreatorAI production plan into a voice-over production script. " +
-          "Write the exact spoken dialogue/narration, identify male/female voices where appropriate, " +
-          "describe emotion, tone, pacing, pauses, emphasis and delivery. " +
-          "Use natural conversational language matching the content. " +
-          "Return a production-ready voice script.\n\n" +
+          "Create a production-ready voice-over script from this CreatorAI plan. " +
+          "Write ONLY the words that should actually be spoken. " +
+          "Do not include labels such as Voice-over, Male Voice, Female Voice, " +
+          "Scene directions, music instructions or SFX. " +
+          "Use natural spoken language and preserve the language of the original content.\n\n" +
           window.creatorBrainPlan
       })
     });
@@ -1243,34 +1244,215 @@ if (action === "voice") {
     window.creatorVoiceScript = data.result || "";
 
     brainText.innerHTML = `
-      <h3>🎙️ CreatorAI Voice Script</h3>
+      <h3>🎙️ CreatorAI Voice</h3>
 
-      <div style="white-space:pre-wrap;">${window.creatorVoiceScript}</div>
+      <div style="
+        white-space:pre-wrap;
+        line-height:1.6;
+        margin-bottom:18px;
+      ">${window.creatorVoiceScript}</div>
 
       <div style="
         display:flex;
         flex-wrap:wrap;
         gap:10px;
-        margin-top:18px;
+        margin-bottom:14px;
       ">
+
+        <button onclick="playCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          ▶️ Play Voice
+        </button>
+
+        <button onclick="pauseCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          ⏸️ Pause
+        </button>
+
+        <button onclick="resumeCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          ▶️ Resume
+        </button>
+
+        <button onclick="stopCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          ⏹️ Stop
+        </button>
+
         <button onclick="copyVoiceScript()"
           style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
-          📋 Copy Voice Script
+          📋 Copy Script
         </button>
+
+      </div>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        align-items:center;
+      ">
+
+        <label>
+          Voice:
+          <select id="creatorVoiceSelect"
+            style="width:auto;margin:0 5px;padding:8px;">
+          </select>
+        </label>
+
+        <label>
+          Speed:
+          <select id="creatorVoiceRate"
+            style="width:auto;margin:0 5px;padding:8px;">
+            <option value="0.75">0.75×</option>
+            <option value="0.9">0.9×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.1">1.1×</option>
+            <option value="1.25">1.25×</option>
+          </select>
+        </label>
+
       </div>
     `;
 
+    setupCreatorVoices();
+
+    window.scrollTo({
+      top: result.getBoundingClientRect().top + window.scrollY - 100,
+      behavior: "smooth"
+    });
+
   } catch (error) {
 
-    console.error("Voice script error:", error);
+    console.error("Voice generation error:", error);
 
     brainText.textContent =
       "CreatorAI Voice generator is temporarily unavailable.";
   }
 
   return;
-}  
+}
 };
+  
+window.creatorSpeech = null;
+
+window.setupCreatorVoices = function(){
+
+  const select = document.getElementById("creatorVoiceSelect");
+
+  if (!select || !("speechSynthesis" in window)) {
+    return;
+  }
+
+  const voices = speechSynthesis.getVoices();
+
+  select.innerHTML = "";
+
+  voices.forEach((voice, index) => {
+
+    const option = document.createElement("option");
+
+    option.value = index;
+    option.textContent =
+      `${voice.name} — ${voice.lang}`;
+
+    select.appendChild(option);
+
+  });
+};
+
+
+window.playCreatorVoice = function(){
+
+  if (!window.creatorVoiceScript) {
+    alert("No voice script available.");
+    return;
+  }
+
+  if (!("speechSynthesis" in window)) {
+    alert("Voice playback is not supported in this browser.");
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const text = window.creatorVoiceScript
+    .replace(/\*\*/g, "")
+    .replace(/#+\s*/g, "")
+    .replace(/\[[^\]]*\]/g, "")
+    .trim();
+
+  const utterance =
+    new SpeechSynthesisUtterance(text);
+
+  const select =
+    document.getElementById("creatorVoiceSelect");
+
+  const rate =
+    document.getElementById("creatorVoiceRate");
+
+  const voices =
+    speechSynthesis.getVoices();
+
+  if (select && voices[select.value]) {
+
+    utterance.voice =
+      voices[select.value];
+
+    utterance.lang =
+      voices[select.value].lang;
+  }
+
+  utterance.rate =
+    rate ? Number(rate.value) : 1;
+
+  utterance.pitch = 1;
+
+  window.creatorSpeech = utterance;
+
+  speechSynthesis.speak(utterance);
+};
+
+
+window.pauseCreatorVoice = function(){
+
+  if ("speechSynthesis" in window) {
+    speechSynthesis.pause();
+  }
+
+};
+
+
+window.resumeCreatorVoice = function(){
+
+  if ("speechSynthesis" in window) {
+    speechSynthesis.resume();
+  }
+
+};
+
+
+window.stopCreatorVoice = function(){
+
+  if ("speechSynthesis" in window) {
+    speechSynthesis.cancel();
+  }
+
+  window.creatorSpeech = null;
+
+};
+
+
+window.setupCreatorVoices();
+
+if ("speechSynthesis" in window) {
+
+  speechSynthesis.onvoiceschanged =
+    window.setupCreatorVoices;
+
+}
+
+
  window.copyCaption = function(){
   if (!window.creatorCaption) {
     alert("No captions available to copy.");
