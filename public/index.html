@@ -868,105 +868,59 @@ async function generate() {
           ">${window.creatorVoiceScript}</div>
 
 
-          <div style="
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
-            margin-bottom:14px;
-          ">
+           <div style="
+          display:flex;
+          flex-wrap:wrap;
+          gap:10px;
+          margin-bottom:14px;
+        ">
 
-            <button
-              class="btn"
-              onclick="playCreatorVoice()">
-              ▶️ Play Voice
-            </button>
+          <button
+            class="btn"
+            onclick="generateCreatorVoice()">
+            🎙️ Generate Voice
+          </button>
 
-            <button
-              class="btn"
-              onclick="pauseCreatorVoice()">
-              ⏸️ Pause
-            </button>
+          <button
+            class="btn"
+            onclick="playCreatorVoice()">
+            ▶️ Play
+          </button>
 
-            <button
-              class="btn"
-              onclick="resumeCreatorVoice()">
-              ▶️ Resume
-            </button>
+          <button
+            class="btn"
+            onclick="pauseCreatorVoice()">
+            ⏸️ Pause
+          </button>
 
-            <button
-              class="btn"
-              onclick="stopCreatorVoice()">
-              ⏹️ Stop
-            </button>
+          <button
+            class="btn"
+            onclick="resumeCreatorVoice()">
+            ▶️ Resume
+          </button>
 
-            <button
-              class="btn"
-              onclick="copyVoiceScript()">
-              📋 Copy Script
-            </button>
+          <button
+            class="btn"
+            onclick="stopCreatorVoice()">
+            ⏹️ Stop
+          </button>
 
-          </div>
+          <button
+            class="btn"
+            onclick="downloadCreatorVoice()">
+            ⬇️ Download WAV
+          </button>
 
-
-          <div style="
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
-            align-items:center;
-          ">
-
-            <label>
-              Voice:
-
-              <select
-                id="creatorVoiceSelect"
-                style="width:auto;margin:0 5px;padding:8px;">
-              </select>
-
-            </label>
-
-
-            <label>
-              Speed:
-
-              <select
-                id="creatorVoiceRate"
-                style="width:auto;margin:0 5px;padding:8px;">
-
-                <option value="0.75">
-                  0.75×
-                </option>
-
-                <option value="0.9">
-                  0.9×
-                </option>
-
-                <option value="1" selected>
-                  1×
-                </option>
-
-                <option value="1.1">
-                  1.1×
-                </option>
-
-                <option value="1.25">
-                  1.25×
-                </option>
-
-              </select>
-
-            </label>
-
-          </div>
+          <button
+            class="btn"
+            onclick="copyVoiceScript()">
+            📋 Copy Script
+          </button>
 
         </div>
       `;
 
-
-      setupCreatorVoices();
-
-      return;
-
+      return;             
 
     } catch (error) {
 
@@ -1488,9 +1442,14 @@ if (action === "voice") {
         margin-bottom:14px;
       ">
 
+                <button onclick="generateCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          🎙️ Generate Voice
+        </button>
+
         <button onclick="playCreatorVoice()"
           style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
-          ▶️ Play Voice
+          ▶️ Play
         </button>
 
         <button onclick="pauseCreatorVoice()"
@@ -1503,53 +1462,27 @@ if (action === "voice") {
           ▶️ Resume
         </button>
 
-        <button onclick="recordCreatorVoice()"
-  style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
-  🎙️ Record & Download
-</button>
-
         <button onclick="stopCreatorVoice()"
           style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
           ⏹️ Stop
+        </button>
+
+        <button onclick="downloadCreatorVoice()"
+          style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
+          ⬇️ Download WAV
         </button>
 
         <button onclick="copyVoiceScript()"
           style="padding:12px 16px;border-radius:12px;border:0;cursor:pointer;">
           📋 Copy Script
         </button>
-
+        
       </div>
 
-      <div style="
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-        align-items:center;
-      ">
-
-        <label>
-          Voice:
-          <select id="creatorVoiceSelect"
-            style="width:auto;margin:0 5px;padding:8px;">
-          </select>
-        </label>
-
-        <label>
-          Speed:
-          <select id="creatorVoiceRate"
-            style="width:auto;margin:0 5px;padding:8px;">
-            <option value="0.75">0.75×</option>
-            <option value="0.9">0.9×</option>
-            <option value="1" selected>1×</option>
-            <option value="1.1">1.1×</option>
-            <option value="1.25">1.25×</option>
-          </select>
-        </label>
-
-      </div>
+      
     `;
 
-    setupCreatorVoices();
+    
 
     window.scrollTo({
       top: result.getBoundingClientRect().top + window.scrollY - 100,
@@ -1568,103 +1501,192 @@ if (action === "voice") {
 }
 };
   
-window.creatorSpeech = null;
+/* =========================
+   CREATORAI GEMINI VOICE
+========================= */
 
-window.setupCreatorVoices = function(){
+window.creatorAudio = null;
+window.creatorVoiceUrl = null;
 
-  const select = document.getElementById("creatorVoiceSelect");
-
-  if (!select || !("speechSynthesis" in window)) {
-    return;
-  }
-
-  const voices = speechSynthesis.getVoices();
-
-  select.innerHTML = "";
-
-  voices.forEach((voice, index) => {
-
-    const option = document.createElement("option");
-
-    option.value = index;
-    option.textContent =
-      `${voice.name} — ${voice.lang}`;
-
-    select.appendChild(option);
-
-  });
-};
-
-
-window.playCreatorVoice = function(){
+window.generateCreatorVoice = async function(){
 
   if (!window.creatorVoiceScript) {
     alert("No voice script available.");
     return;
   }
 
-  if (!("speechSynthesis" in window)) {
-    alert("Voice playback is not supported in this browser.");
+  const script =
+    window.creatorVoiceScript
+      .replace(/\*\*/g, "")
+      .replace(/#+\s*/g, "")
+      .replace(/\[[^\]]*\]/g, "")
+      .trim();
+
+  if (!script) {
+    alert("No voice script available.");
     return;
   }
 
-  speechSynthesis.cancel();
+  const result =
+    document.getElementById("brainResult");
 
-  const text = window.creatorVoiceScript
-    .replace(/\*\*/g, "")
-    .replace(/#+\s*/g, "")
-    .replace(/\[[^\]]*\]/g, "")
-    .trim();
+  const brainText =
+    document.getElementById("brainText");
 
-  const utterance =
-    new SpeechSynthesisUtterance(text);
+  brainText.innerHTML = `
+    <h3>🎙️ CreatorAI Voice</h3>
+    <p>Creating your natural AI voice...</p>
+  `;
 
-  const select =
-    document.getElementById("creatorVoiceSelect");
+  try {
 
-  const rate =
-    document.getElementById("creatorVoiceRate");
+    const response =
+      await fetch("/api/tts", {
+        method:"POST",
 
-  const voices =
-    speechSynthesis.getVoices();
+        headers:{
+          "Content-Type":"application/json"
+        },
 
-  if (select && voices[select.value]) {
+        credentials:"same-origin",
 
-    utterance.voice =
-      voices[select.value];
+        body:JSON.stringify({
+          text:script,
+          voice:"Kore"
+        })
+      });
 
-    utterance.lang =
-      voices[select.value].lang;
-  }
+    const data =
+      await response.json();
 
-  utterance.rate =
-    rate ? Number(rate.value) : 1;
+    if (!response.ok) {
 
-  utterance.pitch = 1;
+      brainText.innerHTML = `
+        <h3>🎙️ CreatorAI Voice</h3>
+        <p>${data.error || "Voice generation failed."}</p>
+      `;
 
-  window.creatorSpeech = utterance;
-
-  utterance.onend = function(){
-
-    if (
-      window.creatorRecorder &&
-      window.creatorRecorder.state === "recording"
-    ) {
-
-      window.creatorRecorder.stop();
-
+      return;
     }
 
-  };
+    if (!data.audioBase64) {
 
-  speechSynthesis.speak(utterance);  
+      brainText.innerHTML = `
+        <h3>🎙️ CreatorAI Voice</h3>
+        <p>Gemini returned no audio.</p>
+      `;
+
+      return;
+    }
+
+    const binary =
+      atob(data.audioBase64);
+
+    const bytes =
+      new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
+
+    const blob =
+      new Blob(
+        [bytes],
+        {type:"audio/wav"}
+      );
+
+    if (window.creatorVoiceUrl) {
+      URL.revokeObjectURL(
+        window.creatorVoiceUrl
+      );
+    }
+
+    window.creatorVoiceUrl =
+      URL.createObjectURL(blob);
+
+    if (window.creatorAudio) {
+      window.creatorAudio.pause();
+      window.creatorAudio = null;
+    }
+
+    window.creatorAudio =
+      new Audio(window.creatorVoiceUrl);
+
+    brainText.innerHTML = `
+      <h3>🎙️ CreatorAI Voice Ready</h3>
+
+      <div style="
+        white-space:pre-wrap;
+        line-height:1.6;
+        margin:15px 0;
+      ">${script}</div>
+
+      <audio
+        id="creatorVoiceAudio"
+        controls
+        style="width:100%;margin-top:10px;">
+      </audio>
+
+      <p style="
+        color:#9295a1;
+        margin-top:12px;
+      ">
+        ✅ Real AI voice generated successfully.
+      </p>
+    `;
+
+    const audioPlayer =
+      document.getElementById(
+        "creatorVoiceAudio"
+      );
+
+    if (audioPlayer) {
+      audioPlayer.src =
+        window.creatorVoiceUrl;
+    }
+
+  } catch(error) {
+
+    console.error(
+      "Gemini TTS error:",
+      error
+    );
+
+    brainText.innerHTML = `
+      <h3>🎙️ CreatorAI Voice</h3>
+      <p>
+        CreatorAI Voice is temporarily unavailable.
+        Please try again.
+      </p>
+    `;
+  }
+
+};
+
+
+window.playCreatorVoice = function(){
+
+  if (!window.creatorAudio) {
+    alert("First click Generate Voice.");
+    return;
+  }
+
+  window.creatorAudio.play()
+    .catch(error =>
+      console.error(
+        "Voice play error:",
+        error
+      )
+    );
+
 };
 
 
 window.pauseCreatorVoice = function(){
 
-  if ("speechSynthesis" in window) {
-    speechSynthesis.pause();
+  if (window.creatorAudio) {
+    window.creatorAudio.pause();
   }
 
 };
@@ -1672,32 +1694,58 @@ window.pauseCreatorVoice = function(){
 
 window.resumeCreatorVoice = function(){
 
-  if ("speechSynthesis" in window) {
-    speechSynthesis.resume();
+  if (!window.creatorAudio) {
+    alert("First click Generate Voice.");
+    return;
   }
+
+  window.creatorAudio.play()
+    .catch(error =>
+      console.error(
+        "Voice resume error:",
+        error
+      )
+    );
 
 };
 
 
 window.stopCreatorVoice = function(){
 
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
+  if (!window.creatorAudio) {
+    return;
   }
 
-  window.creatorSpeech = null;
+  window.creatorAudio.pause();
+
+  window.creatorAudio.currentTime = 0;
 
 };
 
 
-window.setupCreatorVoices();
+window.downloadCreatorVoice = function(){
 
-if ("speechSynthesis" in window) {
+  if (!window.creatorVoiceUrl) {
+    alert("First generate the voice.");
+    return;
+  }
 
-  speechSynthesis.onvoiceschanged =
-    window.setupCreatorVoices;
+  const a =
+    document.createElement("a");
 
-}
+  a.href =
+    window.creatorVoiceUrl;
+
+  a.download =
+    "creatorai-voice.wav";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+};
 
 
  window.copyCaption = function(){
@@ -1756,118 +1804,8 @@ window.copyVideoPlan = function(){
       alert("Could not copy the video package.");
     });
 };
-window.recordCreatorVoice = async function(){
 
-  if (!window.creatorVoiceScript) {
-    alert("No voice script available.");
-    return;
-  }
 
-  if (!navigator.mediaDevices ||
-      !navigator.mediaDevices.getDisplayMedia) {
-
-    alert("Audio recording is not supported in this browser.");
-    return;
-  }
-
-  try {
-
-    alert("Select this browser tab and enable Share tab audio.");
-
-    const stream =
-      await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
-      });
-
-    const audioTracks =
-      stream.getAudioTracks();
-
-    if (!audioTracks.length) {
-
-      stream.getTracks().forEach(track =>
-        track.stop()
-      );
-
-      alert(
-        "Tab audio was not shared. Please try again and enable Share tab audio."
-      );
-
-      return;
-    }
-
-    const audioStream =
-      new MediaStream(audioTracks);
-
-    const recorder =
-      new MediaRecorder(audioStream);
-
-    const chunks = [];
-
-    recorder.ondataavailable = function(event){
-
-      if (event.data.size > 0) {
-        chunks.push(event.data);
-      }
-
-    };
-
-    recorder.onstop = function(){
-
-      const blob =
-        new Blob(
-          chunks,
-          { type: recorder.mimeType }
-        );
-
-      const url =
-        URL.createObjectURL(blob);
-
-      const a =
-        document.createElement("a");
-
-      a.href = url;
-
-      a.download =
-        "creatorai-voice.webm";
-
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-      URL.revokeObjectURL(url);
-
-      stream.getTracks().forEach(track =>
-        track.stop()
-      );
-
-      alert("✅ Voice recording downloaded!");
-
-    };
-
-    recorder.start();
-
-    playCreatorVoice();
-
-    window.creatorRecorder =
-      recorder;
-
-  } catch(error) {
-
-    console.error(
-      "Voice recording error:",
-      error
-    );
-
-    alert(
-      "Voice recording was cancelled or unavailable."
-    );
-
-  }
-
-};
 </script>
 
 </body>
