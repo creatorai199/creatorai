@@ -675,7 +675,7 @@ Create the best possible CreatorAI production plan from this thought.
         `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 2.5 Flash...`
       );
 
-      result = await callGemini("gemini-2.5-flash");
+      result = await callGemini("gemini-3.6-flash");
     }
 
     if (!result.response.ok) {
