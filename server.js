@@ -782,24 +782,9 @@ if (selectedProvider === "claude") {
 // GEMINI
 // =========================
 
-else {
+ else {
   result = await callGemini("gemini-3.7-flash");
-
-  // Automatic Gemini fallback
-  if (
-    !result.response.ok &&
-    [429, 500, 502, 503, 504].includes(
-      result.response.status
-    )
-  ) {
-    console.log(
-      `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 3.6 Flash...`
-    );
-
-    result = await callGemini("gemini-3.6-flash");
-  }
-}
-  
+} 
     if (!result.response.ok) {
       console.error("Gemini Brain error:", result.data);
 
