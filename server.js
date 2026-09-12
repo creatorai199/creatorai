@@ -534,6 +534,7 @@ app.post("/api/verify-subscription", auth, async (req, res) => {
    CREATORAI BRAIN — GEMINI
 ========================= */
 
+
 app.post("/api/brain", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
@@ -663,21 +664,44 @@ Create the best possible CreatorAI production plan from this thought.
       };
     }
 
-    // FIRST TRY — Gemini 3.7 Flash
-    let result = await callGemini("gemini-3.7-flash");
+    // =========================
+// CREATORAI MODEL ROUTER
+// =========================
 
-    // AUTOMATIC FALLBACK — Gemini 2.5 Flash
-    if (
-      !result.response.ok &&
-      [429, 500, 502, 503, 504].includes(result.response.status)
-    ) {
-      console.log(
-        `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 2.5 Flash...`
-      );
+const contentText = `${idea} ${type}`.toLowerCase();
 
-      result = await callGemini("gemini-3.6-flash");
-    }
+let selectedModel = "gemini-3.7-flash";
 
+// CreatorAI currently uses Gemini as the active free provider.
+// Claude can be plugged in later without changing the frontend.
+
+if (
+  contentText.includes("comedy") ||
+  contentText.includes("funny") ||
+  contentText.includes("punjabi") ||
+  contentText.includes("hindi") ||
+  contentText.includes("story") ||
+  contentText.includes("script") ||
+  contentText.includes("emotional")
+) {
+  selectedModel = "gemini-3.7-flash";
+}
+
+console.log("CreatorAI selected model:", selectedModel);
+
+let result = await callGemini(selectedModel);
+
+// Automatic Gemini fallback
+if (
+  !result.response.ok &&
+  [429, 500, 502, 503, 504].includes(result.response.status)
+) {
+  console.log(
+    `Primary model unavailable (${result.response.status}). Trying Gemini 3.6 Flash...`
+  );
+
+  result = await callGemini("gemini-3.6-flash");
+}
     if (!result.response.ok) {
       console.error("Gemini Brain error:", result.data);
 
