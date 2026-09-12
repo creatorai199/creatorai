@@ -940,17 +940,31 @@ app.post("/api/generate", auth, async (req, res) => {
 
       const data = await falResponse.json();
 
-      if (!falResponse.ok) {
-        console.error("FAL video error:", data);
+       if (!falResponse.ok) {
+  console.error("FAL video error:", data);
 
-        return res.status(502).json({
-          error:
-            data?.detail ||
-            data?.error ||
-            data?.message ||
-            `FAL video request failed with status ${falResponse.status}`,
-        });
-      }
+  const falError =
+    data?.detail ||
+    data?.error ||
+    data?.message ||
+    "";
+
+  if (
+    String(falError).toLowerCase().includes("top_up") ||
+    String(falError).toLowerCase().includes("user is locked")
+  ) {
+    return res.status(503).json({
+      error:
+        "🎬 CreatorAI Video is temporarily unavailable. Our AI video provider is currently being activated. Please try again later.",
+    });
+  }
+
+  return res.status(502).json({
+    error:
+      falError ||
+      `Video generation failed with status ${falResponse.status}.`,
+  });
+}
 
       const videoUrl =
         data?.video?.url ||
