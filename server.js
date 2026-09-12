@@ -837,7 +837,8 @@ else {
       error: "CreatorAI Brain is temporarily unavailable.",
     });
   }
-});app.post("/api/generate", auth, async (req, res) => {
+   
+app.post("/api/generate", auth, async (req, res) => {
   try {
     const user = await getUserById(req.user.id);
 
@@ -861,69 +862,130 @@ else {
       });
     }
 
-    if (type !== "image") {
-      return res.status(400).json({
-        error:
-          "Image generation is available first. Video and voice are coming next.",
-      });
-    }
+    /* =========================
+       IMAGE GENERATION
+    ========================= */
 
-    const falResponse = await fetch(
-      "https://fal.run/fal-ai/flux/schnell",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Key ${process.env.FAL_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt,
-          image_size: "square_hd",
-          num_images: 1,
-          output_format: "jpeg",
-          enable_safety_checker: true,
-        }),
+    if (type === "image") {
+      const falResponse = await fetch(
+        "https://fal.run/fal-ai/flux/schnell",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Key ${process.env.FAL_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt,
+            image_size: "square_hd",
+            num_images: 1,
+            output_format: "jpeg",
+            enable_safety_checker: true,
+          }),
+        }
+      );
+
+      const data = await falResponse.json();
+
+      if (!falResponse.ok) {
+        console.error("FAL image error:", data);
+
+        return res.status(502).json({
+          error:
+            data?.detail ||
+            data?.error ||
+            data?.message ||
+            `FAL image request failed with status ${falResponse.status}`,
+        });
       }
-    );
 
-    const data = await falResponse.json();
+      const imageUrl = data?.images?.[0]?.url;
 
-    if (!falResponse.ok) {
-      console.error("FAL error:", data);
+      if (!imageUrl) {
+        return res.status(502).json({
+          error: "AI returned no image.",
+        });
+      }
 
-      return res.status(502).json({
-        error:
-          data?.detail ||
-          data?.error ||
-          data?.message ||
-          `FAL request failed with status ${falResponse.status}`,
+      return res.json({
+        ok: true,
+        status: "completed",
+        type: "image",
+        prompt,
+        imageUrl,
       });
     }
 
-    const imageUrl = data?.images?.[0]?.url;
+    /* =========================
+       VIDEO GENERATION
+    ========================= */
 
-    if (!imageUrl) {
-      return res.status(502).json({
-        error: "AI returned no image.",
+    if (type === "video") {
+      const falResponse = await fetch(
+        "https://fal.run/fal-ai/veo3.1",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Key ${process.env.FAL_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt,
+            aspect_ratio: "9:16",
+            duration: "5s",
+          }),
+        }
+      );
+
+      const data = await falResponse.json();
+
+      if (!falResponse.ok) {
+        console.error("FAL video error:", data);
+
+        return res.status(502).json({
+          error:
+            data?.detail ||
+            data?.error ||
+            data?.message ||
+            `FAL video request failed with status ${falResponse.status}`,
+        });
+      }
+
+      const videoUrl =
+        data?.video?.url ||
+        data?.videos?.[0]?.url ||
+        data?.output?.video?.url;
+
+      if (!videoUrl) {
+        console.error("FAL video returned no URL:", data);
+
+        return res.status(502).json({
+          error: "AI returned no video.",
+        });
+      }
+
+      return res.json({
+        ok: true,
+        status: "completed",
+        type: "video",
+        prompt,
+        videoUrl,
       });
     }
 
-    return res.json({
-      ok: true,
-      status: "completed",
-      type: "image",
-      prompt,
-      imageUrl,
+    return res.status(400).json({
+      error: "Unsupported generation type.",
     });
+
   } catch (error) {
-    console.error("FAL request error:", error);
+    console.error("FAL generation error:", error);
 
     return res.status(500).json({
-      error: "Unable to generate the image right now.",
+      error: "Unable to generate content right now.",
     });
   }
 });
-
+   
 /* =========================
    FRONTEND FALLBACK
 ========================= */
