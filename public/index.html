@@ -99,6 +99,43 @@ h1{
   padding:23px
 }
 .box p{color:#9295a1;line-height:1.5}
+#pricing .price-wrap{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:22px;
+  align-items:stretch;
+}
+#pricing .price{
+  height:100%;
+  box-sizing:border-box;
+}
+#pricing .price.trader-price-card{
+  border-color:#315b4a;
+  background:linear-gradient(145deg,#101714,#111b17);
+}
+.trader-price-card .trader-badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#193b2e;
+  color:#8ff0bd;
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:12px;
+}
+.trader-price-card .trader-tagline{
+  color:#aeb3b0;
+  line-height:1.5;
+  margin:10px 0 16px;
+}
+.trader-price-card .annual{
+  margin-top:12px;
+  color:#8ff0bd;
+  font-size:13px;
+}
+@media(max-width:760px){
+  #pricing .price-wrap{grid-template-columns:1fr}
+}
 .price{
   max-width:460px;
   margin:25px auto;
@@ -339,28 +376,68 @@ input,textarea,select{
     Simple creator subscription. Cancel according to your subscription terms.
   </p>
 
-  <div class="price">
+  <div class="price-wrap">
 
-    <div><del>₹499</del></div>
+    <div class="price">
 
-    <strong>₹199</strong>
-    <span>/month</span>
+      <div><del>₹499</del></div>
 
-    <ul>
-      <li>🧠 CreatorAI Brain</li>
-      <li>🎬 AI video workspace</li>
-      <li>🖼️ AI image generation</li>
-      <li>🎙️ AI voice & scripts</li>
-      <li>🚀 Creator dashboard</li>
-      <li>💼 Commercial-use workflow</li>
-    </ul>
+      <strong>₹199</strong>
+      <span>/month</span>
 
-    <button
-      class="btn primary"
-      style="width:100%"
-      onclick="openAuth('signup')">
-      Get Creator Pro →
-    </button>
+      <ul>
+        <li>🧠 CreatorAI Brain</li>
+        <li>🎬 AI video workspace</li>
+        <li>🖼️ AI image generation</li>
+        <li>🎙️ AI voice & scripts</li>
+        <li>🚀 Creator dashboard</li>
+        <li>💼 Commercial-use workflow</li>
+      </ul>
+
+      <button
+        class="btn primary"
+        style="width:100%"
+        onclick="openAuth('signup')">
+        Get Creator Pro →
+      </button>
+
+    </div>
+
+    <div class="price trader-price-card">
+
+      <span class="trader-badge">📈 TRADER PRO • LAUNCH PRICE</span>
+
+      <div><del>₹499/month</del></div>
+
+      <strong>₹299</strong>
+      <span>/month</span>
+
+      <div class="trader-tagline">
+        Powerful AI trading analysis at a price built for everyday traders.
+      </div>
+
+      <ul>
+        <li>📊 AI Trade Analyzer</li>
+        <li>📷 AI Chart Analysis</li>
+        <li>🛡️ Risk & Position Calculator</li>
+        <li>🎯 Entry / SL / Target analysis</li>
+        <li>📝 Trade Journal</li>
+        <li>🧠 AI Trade Review</li>
+        <li>⚡ Fast, simple trading workflow</li>
+      </ul>
+
+      <button
+        class="btn primary"
+        style="width:100%"
+        onclick="openAuth('signup')">
+        Get Trader Pro →
+      </button>
+
+      <div class="annual">
+        ⭐ Best value: ₹2,499/year • Save vs monthly
+      </div>
+
+    </div>
 
   </div>
 </section>
@@ -389,6 +466,13 @@ input,textarea,select{
       class="status"
       style="display:none">
       🟢 Creator Pro Active — ₹199/month • Subscription authenticated
+    </div>
+
+    <div
+      id="traderProStatus"
+      class="status"
+      style="display:none;margin-top:12px">
+      📈 Trader Pro Active — ₹299/month • Subscription authenticated
     </div>
 
   </div>
