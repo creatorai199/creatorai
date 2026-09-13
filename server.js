@@ -1,69 +1,3 @@
-    const requestBody = {
-      systemInstruction: {
-        parts: [
-          {
-            text: "You are a careful visual chart analyst. Never invent information that is not visible.",
-          },
-        ],
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: chartPrompt },
-            {
-              inlineData: {
-                mimeType,
-                data: imageBase64,
-              },
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        maxOutputTokens: 2500,
-      },
-    };
-
-    // Try the preferred model first, then automatically fall back if the
-    // provider is temporarily busy or the model is unavailable.
-    const chartModels = ["gemini-3.7-flash", "gemini-3.6-flash"];
-    let data = null;
-    let lastError = null;
-
-    for (const model of chartModels) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": process.env.GEMINI_API_KEY,
-            },
-            body: JSON.stringify(requestBody),
-          }
-        );
-
-        data = await response.json();
-
-        if (response.ok) break;
-
-        lastError = data?.error?.message || `Model ${model} was unavailable.`;
-        console.error(`Trader chart ${model} error:`, data);
-      } catch (modelError) {
-        lastError = modelError?.message || `Model ${model} failed.`;
-        console.error(`Trader chart ${model} request error:`, modelError);
-      }
-    }
-
-    if (!data || !data.candidates) {
-      return res.status(502).json({
-        error:
-          "CreatorAI's chart AI is temporarily busy. Please try again in a moment.",
-        detail: lastError || undefined,
-      });
-    }
 require("dotenv").config();
 
 const express = require("express");
@@ -1263,7 +1197,6 @@ IMPORTANT RULES:
 - Do not guarantee profit, predict certainty, or call any setup a sure-shot trade.
 - Focus on intraday trading education and risk awareness.
 - Keep the language simple enough for a beginner in India.
-- Do not tell the user to risk a specific amount of money unless it is calculated from user-supplied capital/risk data. This endpoint receives no capital data.
 - If the image is not a trading chart, clearly say so.
 
 Return exactly these sections:
@@ -1300,71 +1233,77 @@ Explain why in 1-2 sentences.
 One sentence: this is chart analysis, not a guaranteed signal or personalized investment advice.
 `;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text: "You are a careful visual chart analyst. Never invent information that is not visible.",
-              },
-            ],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: chartPrompt },
-                {
-                  inlineData: {
-                    mimeType,
-                    data: imageBase64,
-                  },
-                },
-              ],
+    const requestBody = {
+      systemInstruction: {
+        parts: [{
+          text: "You are a careful visual chart analyst. Never invent information that is not visible.",
+        }],
+      },
+      contents: [{
+        role: "user",
+        parts: [
+          { text: chartPrompt },
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64,
             },
-          ],
-          generationConfig: {
-            maxOutputTokens: 2500,
           },
-        }),
+        ],
+      }],
+      generationConfig: {
+        maxOutputTokens: 2500,
+      },
+    };
+
+    const chartModels = ["gemini-3.7-flash", "gemini-3.6-flash"];
+    let lastError = null;
+
+    for (const model of chartModels) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": process.env.GEMINI_API_KEY,
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const text = data?.candidates?.[0]?.content?.parts
+            ?.map((part) => part.text || "")
+            .join("")
+            .trim();
+
+          if (text) {
+            return res.json({
+              ok: true,
+              status: "completed",
+              type: "trader-chart",
+              result: text,
+            });
+          }
+
+          lastError = "The AI returned no chart analysis.";
+        } else {
+          lastError = data?.error?.message || `Model ${model} was unavailable.`;
+          console.error(`Trader chart ${model} error:`, data);
+        }
+      } catch (modelError) {
+        lastError = modelError?.message || `Model ${model} failed.`;
+        console.error(`Trader chart ${model} request error:`, modelError);
       }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Trader chart Gemini error:", data);
-      return res.status(502).json({
-        error:
-          data?.error?.message ||
-          "CreatorAI chart analysis is temporarily unavailable.",
-      });
     }
 
-    const text =
-      data?.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text || "")
-        .join("")
-        .trim();
-
-    if (!text) {
-      return res.status(502).json({
-        error: "Gemini returned no chart analysis.",
-      });
-    }
-
-    return res.json({
-      ok: true,
-      status: "completed",
-      type: "trader-chart",
-      result: text,
+    return res.status(502).json({
+      error: "CreatorAI's chart AI is temporarily busy. Please try again in a moment.",
+      detail: lastError || undefined,
     });
   } catch (error) {
     console.error("Trader chart error:", error);
