@@ -161,6 +161,25 @@ input,textarea,select{
   background:#292044;
   color:#c8b9ff
 }
+.trader-panel{display:none;margin-top:18px;padding:22px;border-radius:18px;border:1px solid #315b4a;background:linear-gradient(145deg,#0f1513,#111b17)}
+.trader-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap}
+.trader-title{font-size:23px;font-weight:700}
+.trader-subtitle{color:#9295a1;line-height:1.5;margin-top:6px}
+.trader-price{padding:8px 12px;border-radius:20px;background:#193b2e;color:#8ff0bd;font-weight:700;white-space:nowrap}
+.trader-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.trader-grid label{color:#bfc2cb;font-size:13px}
+.trader-grid input,.trader-grid select{width:100%;margin-top:6px}
+.trader-full{grid-column:1/-1}
+.trader-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.trader-result{display:none;margin-top:18px;padding:18px;border-radius:15px;background:#0b0e0d;border:1px solid #2c4037}
+.trader-score{font-size:32px;font-weight:800}
+.trader-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.trader-metric{padding:12px;border-radius:12px;background:#151a18}
+.trader-metric small{display:block;color:#858a91;margin-bottom:5px}
+.trader-note{margin-top:14px;color:#aeb3b0;line-height:1.55}
+.trader-warning{margin-top:14px;padding:12px;border-radius:10px;background:#241f12;border:1px solid #4d421f;color:#d9c88a;line-height:1.5}
+@media(max-width:700px){.trader-grid,.trader-metrics{grid-template-columns:1fr}.trader-full{grid-column:auto}}
+
 .brain-result{
   display:none;
   margin-top:15px;
@@ -398,6 +417,7 @@ input,textarea,select{
         <option value="video">🎬 Video</option>
         <option value="image">🖼️ Image</option>
         <option value="voice">🎙️ Voice</option>
+        <option value="trading">📈 Trader Pro — ₹299/month</option>
       </select>
 
       <button
@@ -457,6 +477,49 @@ input,textarea,select{
       onclick="generate()">
       ✨ Create
     </button>
+
+    <div id="traderWorkspace" class="trader-panel">
+      <div class="trader-head">
+        <div>
+          <div class="trader-title">📈 CreatorAI Trader Pro</div>
+          <div class="trader-subtitle">Your AI trading copilot — analyze the setup, calculate risk, and make more disciplined decisions.</div>
+        </div>
+        <div class="trader-price">₹299/month</div>
+      </div>
+
+      <div class="trader-grid">
+        <div><label>Asset</label>
+          <select id="tradeAsset"><option>NIFTY</option><option>BANKNIFTY</option><option>SENSEX</option><option>Stock</option><option>Crypto</option><option>Forex</option></select>
+        </div>
+        <div><label>Direction</label>
+          <select id="tradeDirection"><option value="BUY">BUY / LONG</option><option value="SELL">SELL / SHORT</option></select>
+        </div>
+        <div><label>Entry Price</label><input id="tradeEntry" type="number" step="0.01" placeholder="25100"></div>
+        <div><label>Stop Loss</label><input id="tradeSL" type="number" step="0.01" placeholder="24950"></div>
+        <div><label>Target</label><input id="tradeTarget" type="number" step="0.01" placeholder="25500"></div>
+        <div><label>Trading Capital (₹)</label><input id="tradeCapital" type="number" step="100" placeholder="100000"></div>
+        <div><label>Maximum Risk (%)</label><input id="tradeRiskPct" type="number" step="0.1" value="1" min="0.1" max="10"></div>
+        <div class="trader-full"><label>Why are you taking this trade? <span style="color:#777">(optional)</span></label><input id="tradeReason" type="text" placeholder="Example: breakout above resistance with strong volume"></div>
+      </div>
+
+      <div class="trader-actions">
+        <button class="btn primary" type="button" onclick="analyzeTraderSetup()">🔎 Analyze My Trade</button>
+        <button class="btn" type="button" onclick="resetTraderSetup()">Reset</button>
+      </div>
+
+      <div id="traderResult" class="trader-result">
+        <div id="traderAssessment" class="trader-score"></div>
+        <div id="traderSummary" class="trader-note"></div>
+        <div class="trader-metrics">
+          <div class="trader-metric"><small>Risk / Reward</small><strong id="tradeRR">—</strong></div>
+          <div class="trader-metric"><small>₹ at Risk</small><strong id="tradeRiskMoney">—</strong></div>
+          <div class="trader-metric"><small>Max Risk</small><strong id="tradeMaxRisk">—</strong></div>
+        </div>
+        <div id="traderWarning" class="trader-warning"></div>
+      </div>
+
+      <div class="trader-note">⚠️ CreatorAI provides analysis and calculations, not guaranteed returns or personalized investment advice. Markets can move against any setup.</div>
+    </div>
 
     <div id="genResult" class="output"></div>
 
@@ -859,6 +922,7 @@ Create ${contentType} based on the user's original idea above, while improving t
 /* ---------------- VOICE STUDIO ---------------- */
 
 function updateCreatorMode() {
+  updateTraderVisibility();
   const type = document.getElementById("type").value;
   const workspace = document.getElementById("voiceWorkspace");
   const createButton = document.querySelector(
@@ -1036,6 +1100,80 @@ async function generateVoiceDirect() {
 }
 
 /* ---------------- GENERATION ---------------- */
+
+
+function updateTraderVisibility() {
+  const type = document.getElementById("type");
+  const trader = document.getElementById("traderWorkspace");
+  const voice = document.getElementById("voiceWorkspace");
+  if (!type || !trader) return;
+  const isTrader = type.value === "trading";
+  trader.style.display = isTrader ? "block" : "none";
+  if (voice && isTrader) voice.style.display = "none";
+}
+
+function analyzeTraderSetup() {
+  const direction = document.getElementById("tradeDirection").value;
+  const entry = Number(document.getElementById("tradeEntry").value);
+  const sl = Number(document.getElementById("tradeSL").value);
+  const target = Number(document.getElementById("tradeTarget").value);
+  const capital = Number(document.getElementById("tradeCapital").value);
+  const riskPct = Number(document.getElementById("tradeRiskPct").value);
+  const result = document.getElementById("traderResult");
+  const assessment = document.getElementById("traderAssessment");
+  const summary = document.getElementById("traderSummary");
+  const warning = document.getElementById("traderWarning");
+
+  if (!entry || !sl || !target || !capital || !riskPct) {
+    result.style.display = "block";
+    assessment.textContent = "⚠️ Complete the trade details";
+    summary.textContent = "Enter entry, stop loss, target, capital and maximum risk.";
+    warning.textContent = "No trade assessment was made.";
+    return;
+  }
+
+  const valid = direction === "BUY" ? (sl < entry && target > entry) : (sl > entry && target < entry);
+  if (!valid) {
+    result.style.display = "block";
+    assessment.textContent = "⚠️ Invalid setup";
+    summary.textContent = direction === "BUY"
+      ? "For a BUY trade, Stop Loss should normally be below entry and Target above entry."
+      : "For a SELL trade, Stop Loss should normally be above entry and Target below entry.";
+    warning.textContent = "Check the price levels before considering the setup.";
+    return;
+  }
+
+  const riskPerUnit = Math.abs(entry - sl);
+  const rewardPerUnit = Math.abs(target - entry);
+  const rr = rewardPerUnit / riskPerUnit;
+  const maxRiskMoney = capital * (riskPct / 100);
+  const suggestedQty = Math.floor(maxRiskMoney / riskPerUnit);
+
+  let score = 50;
+  if (rr >= 2) score += 25; else if (rr >= 1.5) score += 15; else if (rr >= 1) score += 5; else score -= 20;
+  if (riskPct <= 1) score += 15; else if (riskPct <= 2) score += 5; else score -= 10;
+  score = Math.max(0, Math.min(100, score));
+
+  const label = score >= 75 ? "FAVORABLE" : (score < 50 ? "AVOID / REWORK" : "WAIT");
+  assessment.textContent = `${score}/100 • ${label}`;
+  summary.textContent = `Basic screening: approximately 1:${rr.toFixed(2)} risk/reward. Risk budget at ${riskPct}% is ₹${maxRiskMoney.toFixed(0)}. Risk-based quantity is about ${suggestedQty} units before lot size, liquidity, brokerage and slippage.`;
+  document.getElementById("tradeRR").textContent = `1:${rr.toFixed(2)}`;
+  document.getElementById("tradeRiskMoney").textContent = `₹${(riskPerUnit * Math.max(1, suggestedQty)).toFixed(0)}`;
+  document.getElementById("tradeMaxRisk").textContent = `₹${maxRiskMoney.toFixed(0)}`;
+  warning.textContent = rr < 1.5
+    ? "⚠️ Risk/reward is relatively weak. Consider whether the target justifies the stop distance."
+    : "✓ Risk/reward passes a basic screening rule. This does not predict whether the trade will win.";
+  result.style.display = "block";
+}
+
+function resetTraderSetup() {
+  ["tradeEntry","tradeSL","tradeTarget","tradeCapital","tradeReason"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  document.getElementById("tradeRiskPct").value = "1";
+  document.getElementById("traderResult").style.display = "none";
+}
 
 async function generate() {
 
