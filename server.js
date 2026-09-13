@@ -1314,6 +1314,633 @@ One sentence: this is chart analysis, not a guaranteed signal or personalized in
 });
 
 /* =========================
+   TRADER PRO — ONE-CLICK ENGINE
+   Practice / paper mode only
+========================= */
+
+const TRADER_SYMBOLS = [
+  "RELIANCE","TCS","HDFCBANK","ICICIBANK","INFY","SBIN",
+  "BHARTIARTL","ITC","LT","AXISBANK","KOTAKBANK","MARUTI",
+  "SUNPHARMA","TATAMOTORS","TATASTEEL","ADANIENT","M&M",
+  "BAJFINANCE","HINDUNILVR"
+];
+
+function normalizeTraderSymbol(symbol) {
+  const raw = String(symbol || "").trim().toUpperCase().replace(/[^A-Z0-9&-]/g, "");
+  if (raw === "NIFTY50" || raw === "NIFTY") return "^NSEI";
+  return raw;
+}
+
+async function fetchYahooIntraday(symbol) {
+const normalizedSymbol = normalizeTraderSymbol(symbol);
+const yahooSymbol = normalizedSymbol.startsWith("^")
+  ? normalizedSymbol
+  : `${normalizedSymbol}.NS`;
+const encoded = encodeURIComponent(yahooSymbol);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=1d&interval=5m&includePrePost=false`;
+  const r = await fetch(url, {
+    headers: { "User-Agent": "CreatorAI-Trader/1.0" }
+  });
+
+  const data = await r.json();
+
+  if (!r.ok) {
+    throw new Error(
+      data?.chart?.error?.description ||
+      `Market data unavailable (${r.status})`
+    );
+  }
+
+  const result = data?.chart?.result?.[0];
+  const q = result?.indicators?.quote?.[0];
+
+  const closes = (q?.close || [])
+    .map(Number)
+    .filter(Number.isFinite);
+
+  const volumes = (q?.volume || []).map(Number);
+
+  if (closes.length < 12) {
+    throw new Error("Not enough recent market data.");
+  }
+
+  const price = closes[closes.length - 1];
+  const prev = closes[closes.length - 7];
+
+  const momentum = ((price - prev) / prev) * 100;
+
+  const recent = closes.slice(-12);
+  const high = Math.max(...recent);
+  const low = Math.min(...recent);
+
+  const validVolumes = volumes
+    .slice(-12)
+    .filter(Number.isFinite);
+
+  const avgVolume =
+    validVolumes.reduce((a,b) => a+b,0) /
+    Math.max(1, validVolumes.length);
+
+  const lastVolume =
+    Number(volumes[volumes.length - 1]) || 0;
+
+  return {
+    symbol: String(symbol || "").toUpperCase(),
+    price: Number(price.toFixed(2)),
+    momentum: Number(momentum.toFixed(2)),
+    high: Number(high.toFixed(2)),
+    low: Number(low.toFixed(2)),
+    volumeRatio:
+      avgVolume > 0
+        ? Number((lastVolume / avgVolume).toFixed(2))
+        : null,
+    closes: closes
+      .slice(-24)
+      .map(v => Number(v.toFixed(2)))
+  };
+}
+
+function deterministicTraderPlan(
+  market,
+  capital,
+  maxLoss,
+  profitGoal,
+  style
+) {
+  const price = market.price;
+
+  const bullish = market.momentum > 0.12;
+  const bearish = market.momentum < -0.12;
+
+  if (!bullish && !bearish) {
+    return {
+      verdict: "WAIT",
+      symbol: market.symbol,
+      direction: "WAIT",
+      entry: null,
+      stopLoss: null,
+      target: null,
+      quantity: 0,
+      maxLoss: 0,
+      potentialProfit: 0,
+      simple_reason:
+        "Recent price movement is too mixed for the practice engine to create a clean directional setup.",
+      explanation:
+        "CreatorAI did not find enough directional momentum in the available recent candles. Waiting is allowed and often safer than forcing a trade.",
+      warning:
+        "No simulated order was created because the setup did not pass the basic direction filter."
+    };
+  }
+
+  const direction = bullish ? "BUY" : "SELL";
+
+  const riskPerShare = Math.max(
+    price *
+      (
+        style === "conservative"
+          ? 0.004
+          : style === "balanced"
+          ? 0.006
+          : 0.008
+      ),
+    0.05
+  );
+
+  const targetDistance = Math.max(
+    riskPerShare * 2,
+    profitGoal > 0
+      ? profitGoal /
+        Math.max(
+          1,
+          Math.floor(maxLoss / riskPerShare)
+        )
+      : riskPerShare * 2
+  );
+
+  const quantity = Math.max(
+    0,
+    Math.floor(
+      Math.min(
+        capital / price,
+        maxLoss / riskPerShare
+      )
+    )
+  );
+
+  if (quantity < 1) {
+    return {
+      verdict: "NO TRADE",
+      symbol: market.symbol,
+      direction,
+      entry: price,
+      stopLoss: null,
+      target: null,
+      quantity: 0,
+      maxLoss: 0,
+      potentialProfit: 0,
+      simple_reason:
+        "Your maximum acceptable loss is too small for even one share at this setup's calculated risk distance.",
+      explanation:
+        "CreatorAI protects the loss limit rather than increasing the quantity or risk to force a trade.",
+      warning:
+        "Increase available capital or use a larger acceptable loss only if that still fits your own risk plan."
+    };
+  }
+
+  const entry = price;
+
+  const stopLoss =
+    bullish
+      ? entry - riskPerShare
+      : entry + riskPerShare;
+
+  const target =
+    bullish
+      ? entry + targetDistance
+      : entry - targetDistance;
+
+  const actualMaxLoss =
+    Number((riskPerShare * quantity).toFixed(2));
+
+  const potentialProfit =
+    Number((targetDistance * quantity).toFixed(2));
+
+  return {
+    verdict: "TRADE",
+    symbol: market.symbol,
+    direction,
+    entry: Number(entry.toFixed(2)),
+    stopLoss: Number(stopLoss.toFixed(2)),
+    target: Number(target.toFixed(2)),
+    quantity,
+    maxLoss: actualMaxLoss,
+    potentialProfit,
+    simple_reason:
+      `A ${direction === "BUY" ? "positive" : "negative"} recent momentum reading was detected. CreatorAI built a practice setup while keeping the planned loss below your limit.`,
+    explanation:
+      `Recent 5-minute movement is ${market.momentum}%. Recent range: ${market.low} to ${market.high}. The engine uses a conservative volatility-based stop and a minimum 1:2 reward-to-risk target.`,
+    warning:
+      "This is a simulated plan based on available market data. It is not a guaranteed signal, and live prices can change before an order could be filled."
+  };
+}
+
+async function aiRefineTraderPlan(
+  market,
+  basePlan,
+  capital,
+  maxLoss,
+  profitGoal,
+  style
+) {
+  if (!process.env.GEMINI_API_KEY) {
+    return basePlan;
+  }
+
+  const prompt = `You are CreatorAI Trader Pro, a cautious trading decision-support assistant for beginners in India.
+
+Use ONLY the supplied market snapshot and the already-calculated risk limits.
+
+Never invent news, prices or indicators.
+
+Do not guarantee profit.
+
+Do not increase the user's maximum loss.
+
+Market snapshot:
+${JSON.stringify(market)}
+
+Calculated base plan:
+${JSON.stringify(basePlan)}
+
+User capital: ${capital}
+
+Maximum loss: ${maxLoss}
+
+Profit goal (not guaranteed): ${profitGoal || 0}
+
+Style: ${style}
+
+Return ONLY valid JSON with keys:
+verdict, direction, entry, stopLoss, target, quantity, maxLoss, potentialProfit, simple_reason, explanation, warning.
+
+verdict must be TRADE, WAIT, or NO TRADE.
+
+If the base plan is unsafe or unclear, choose WAIT or NO TRADE.
+
+Keep maxLoss <= ${maxLoss}.`;
+
+  const models = [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash"
+  ];
+
+  for (const model of models) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key":
+              process.env.GEMINI_API_KEY
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 1200,
+              responseMimeType: "application/json"
+            }
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) continue;
+
+      const text =
+        data?.candidates?.[0]?.content?.parts
+          ?.map(p => p.text || "")
+          .join("")
+          .trim();
+
+      if (!text) continue;
+
+      const cleaned = text
+        .replace(/^```json\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+
+      const parsed = JSON.parse(cleaned);
+
+      if (
+        !parsed ||
+        !["TRADE","WAIT","NO TRADE"]
+          .includes(parsed.verdict)
+      ) {
+        continue;
+      }
+
+      if (Number(parsed.maxLoss) > maxLoss + 0.01) {
+        return basePlan;
+      }
+
+      return {
+        ...basePlan,
+        ...parsed,
+        symbol: market.symbol
+      };
+
+    } catch (e) {
+      console.error(
+        `Trader AI ${model} error:`,
+        e
+      );
+    }
+  }
+
+  return basePlan;
+}
+
+app.post(
+  "/api/trader-opportunities",
+  auth,
+  async (req, res) => {
+    try {
+      const user =
+        await getUserById(req.user.id);
+
+      if (!user || user.plan !== "pro") {
+        return res.status(403).json({
+          error: "Trader Pro is required."
+        });
+      }
+
+      const {
+        capital = 0,
+        maxLoss = 0,
+        style = "conservative"
+      } = req.body || {};
+
+      if (
+        !capital ||
+        !maxLoss ||
+        maxLoss >= capital
+      ) {
+        return res.status(400).json({
+          error:
+            "Enter a valid amount and a smaller maximum loss."
+        });
+      }
+
+      const results = [];
+
+      for (
+        const symbol of TRADER_SYMBOLS.slice(0, 12)
+      ) {
+        try {
+          const m =
+            await fetchYahooIntraday(symbol);
+
+          if (
+            Math.abs(m.momentum) >=
+            (
+              style === "conservative"
+                ? 0.25
+                : 0.15
+            )
+          ) {
+            results.push({
+              ...m,
+              direction:
+                m.momentum > 0
+                  ? "BUY"
+                  : "SELL",
+              reason:
+                m.momentum > 0
+                  ? "Positive recent momentum"
+                  : "Negative recent momentum"
+            });
+          }
+
+        } catch (e) {
+          console.error(
+            "Opportunity scan",
+            symbol,
+            e.message
+          );
+        }
+      }
+
+      results.sort(
+        (a,b) =>
+          Math.abs(b.momentum) -
+          Math.abs(a.momentum)
+      );
+
+      return res.json({
+        ok: true,
+        opportunities:
+          results.slice(0, 5),
+        dataNote:
+          "Market data is retrieved from a public market-data endpoint and may be delayed or unavailable."
+      });
+
+    } catch (e) {
+      console.error(
+        "Opportunity scanner error:",
+        e
+      );
+
+      return res.status(500).json({
+        error:
+          "CreatorAI could not scan the market right now."
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/trader-plan",
+  auth,
+  async (req, res) => {
+    try {
+      const user =
+        await getUserById(req.user.id);
+
+      if (!user || user.plan !== "pro") {
+        return res.status(403).json({
+          error: "Trader Pro is required."
+        });
+      }
+
+      const {
+        symbol = "",
+        capital = 0,
+        maxLoss = 0,
+        profitGoal = 0,
+        style = "conservative",
+        action = "paper"
+      } = req.body || {};
+
+      if (
+        !capital ||
+        capital < 1000 ||
+        !maxLoss ||
+        maxLoss <= 0 ||
+        maxLoss >= capital
+      ) {
+        return res.status(400).json({
+          error:
+            "Enter a valid amount and maximum acceptable loss."
+        });
+      }
+
+      if (!symbol) {
+        return res.status(400).json({
+          error:
+            "Choose a stock or use 'Find for me'."
+        });
+      }
+
+      let market;
+
+      try {
+        market =
+          await fetchYahooIntraday(symbol);
+      } catch (e) {
+        return res.status(503).json({
+          error:
+            "Current market data is unavailable for this symbol. Try another liquid NSE stock or try again later."
+        });
+      }
+
+      let plan =
+        deterministicTraderPlan(
+          market,
+          Number(capital),
+          Number(maxLoss),
+          Number(profitGoal),
+          style
+        );
+
+      plan =
+        await aiRefineTraderPlan(
+          market,
+          plan,
+          Number(capital),
+          Number(maxLoss),
+          Number(profitGoal),
+          style
+        );
+
+      if (
+        plan.quantity &&
+        plan.entry &&
+        plan.stopLoss
+      ) {
+        const riskPerUnit =
+          Math.abs(
+            Number(plan.entry) -
+            Number(plan.stopLoss)
+          );
+
+        const safeQty =
+          Math.floor(
+            Math.min(
+              Number(capital) /
+                Number(plan.entry),
+              Number(maxLoss) /
+                Math.max(
+                  riskPerUnit,
+                  0.0001
+                )
+            )
+          );
+
+        plan.quantity =
+          Math.max(
+            0,
+            Math.min(
+              Number(plan.quantity) || 0,
+              safeQty
+            )
+          );
+
+        plan.maxLoss =
+          Number(
+            (
+              riskPerUnit *
+              plan.quantity
+            ).toFixed(2)
+          );
+
+        if (plan.target) {
+          plan.potentialProfit =
+            Number(
+              (
+                Math.abs(
+                  Number(plan.target) -
+                  Number(plan.entry)
+                ) *
+                plan.quantity
+              ).toFixed(2)
+            );
+        }
+
+        if (
+          plan.maxLoss >
+          Number(maxLoss) + 0.01
+        ) {
+          return res.status(200).json({
+            ok: true,
+            plan: {
+              ...plan,
+              verdict: "NO TRADE",
+              quantity: 0,
+              maxLoss: 0,
+              potentialProfit: 0,
+              warning:
+                "Risk validation rejected this plan."
+            }
+          });
+        }
+      }
+
+      let paperTrade = null;
+
+      if (
+        action === "paper" &&
+        plan.verdict === "TRADE" &&
+        plan.quantity > 0
+      ) {
+        paperTrade = {
+          status: "OPEN (SIMULATED)",
+          symbol: plan.symbol,
+          direction: plan.direction,
+          entry: plan.entry,
+          quantity: plan.quantity,
+          message:
+            "🧪 Practice trade created. This is simulated only; no broker order was sent."
+        };
+      }
+
+      return res.json({
+        ok: true,
+        plan,
+        paperTrade,
+        market: {
+          price: market.price,
+          momentum: market.momentum,
+          volumeRatio: market.volumeRatio
+        },
+        dataNote:
+          "Market data may be delayed or unavailable. Practice mode does not place real orders."
+      });
+
+    } catch (e) {
+      console.error(
+        "Trader plan error:",
+        e
+      );
+
+      return res.status(500).json({
+        error:
+          "CreatorAI could not build the trade plan right now."
+      });
+    }
+  }
+);
+
+/* =========================
    FRONTEND FALLBACK
 ========================= */
 
