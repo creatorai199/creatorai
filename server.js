@@ -90,7 +90,7 @@ app.post(
    APP MIDDLEWARE
 ========================= */
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -782,9 +782,24 @@ if (selectedProvider === "claude") {
 // GEMINI
 // =========================
 
- else {
+else {
   result = await callGemini("gemini-3.7-flash");
-} 
+
+  // Automatic Gemini fallback
+  if (
+    !result.response.ok &&
+    [429, 500, 502, 503, 504].includes(
+      result.response.status
+    )
+  ) {
+    console.log(
+      `Gemini 3.7 Flash unavailable (${result.response.status}). Trying Gemini 3.6 Flash...`
+    );
+
+    result = await callGemini("gemini-3.6-flash");
+  }
+}
+  
     if (!result.response.ok) {
       console.error("Gemini Brain error:", result.data);
 
@@ -1124,6 +1139,175 @@ app.post("/api/generate", auth, async (req, res) => {
   }
 });
    
+/* =========================
+   TRADER PRO — CHART ANALYZER
+========================= */
+
+app.post("/api/trader-chart", auth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+
+    if (!user || user.plan !== "pro") {
+      return res.status(403).json({
+        error: "Trader Pro is required. Upgrade to Trader Pro to analyze charts.",
+      });
+    }
+
+    const {
+      imageBase64,
+      mimeType = "image/jpeg",
+      symbol = "",
+      timeframe = "15 minute",
+      question = "",
+    } = req.body || {};
+
+    if (!imageBase64) {
+      return res.status(400).json({
+        error: "Please upload a chart screenshot.",
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({
+        error: "Gemini AI is not configured.",
+      });
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(mimeType)) {
+      return res.status(400).json({
+        error: "Please upload a JPG, PNG or WEBP chart image.",
+      });
+    }
+
+    const chartPrompt = `
+You are CreatorAI Trader Pro, an educational intraday trading copilot for Indian students and beginner traders.
+
+Analyze the uploaded chart image carefully. The chart may be from TradingView, NSE, BSE or another charting platform.
+
+User context:
+Symbol: ${symbol || "not supplied"}
+Timeframe: ${timeframe}
+User question: ${question || "not supplied"}
+
+IMPORTANT RULES:
+- Analyze only what is actually visible in the chart and the user context.
+- Do not invent current market price, news, volume, indicators, support/resistance, candle patterns or levels that are not visible.
+- If a level or indicator cannot be read confidently, say "not clearly visible".
+- Do not guarantee profit, predict certainty, or call any setup a sure-shot trade.
+- Focus on intraday trading education and risk awareness.
+- Keep the language simple enough for a beginner in India.
+- Do not tell the user to risk a specific amount of money unless it is calculated from user-supplied capital/risk data. This endpoint receives no capital data.
+- If the image is not a trading chart, clearly say so.
+
+Return exactly these sections:
+
+1. CHART SNAPSHOT
+Briefly describe the visible timeframe, trend/structure and instrument if identifiable.
+
+2. WHAT I CAN SEE
+3 to 6 short bullets covering only visible features.
+
+3. POSSIBLE INTRADAY SCENARIOS
+Give a bullish scenario and a bearish scenario only when the chart supports them.
+For each, state what confirmation would strengthen it.
+Do not invent price levels.
+
+4. KEY LEVELS
+List visible support, resistance, high/low or marked levels.
+If levels are unreadable, say so.
+
+5. WHAT COULD GO WRONG
+3 short beginner-friendly warnings.
+
+6. BEGINNER CHECKLIST
+4 practical checks before entering an intraday trade.
+
+7. VERDICT
+Choose one:
+- SETUP LOOKS INTERESTING — WAIT FOR CONFIRMATION
+- NOT ENOUGH CONFIRMATION
+- AVOID / REWORK
+Explain why in 1-2 sentences.
+
+8. EDUCATIONAL NOTE
+One sentence: this is chart analysis, not a guaranteed signal or personalized investment advice.
+`;
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text: "You are a careful visual chart analyst. Never invent information that is not visible.",
+              },
+            ],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: chartPrompt },
+                {
+                  inlineData: {
+                    mimeType,
+                    data: imageBase64,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 2500,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Trader chart Gemini error:", data);
+      return res.status(502).json({
+        error:
+          data?.error?.message ||
+          "CreatorAI chart analysis is temporarily unavailable.",
+      });
+    }
+
+    const text =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("")
+        .trim();
+
+    if (!text) {
+      return res.status(502).json({
+        error: "Gemini returned no chart analysis.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      status: "completed",
+      type: "trader-chart",
+      result: text,
+    });
+  } catch (error) {
+    console.error("Trader chart error:", error);
+    return res.status(500).json({
+      error: "Unable to analyze the chart right now.",
+    });
+  }
+});
+
 /* =========================
    FRONTEND FALLBACK
 ========================= */
