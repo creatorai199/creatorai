@@ -1,3 +1,69 @@
+    const requestBody = {
+      systemInstruction: {
+        parts: [
+          {
+            text: "You are a careful visual chart analyst. Never invent information that is not visible.",
+          },
+        ],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: chartPrompt },
+            {
+              inlineData: {
+                mimeType,
+                data: imageBase64,
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: 2500,
+      },
+    };
+
+    // Try the preferred model first, then automatically fall back if the
+    // provider is temporarily busy or the model is unavailable.
+    const chartModels = ["gemini-3.7-flash", "gemini-3.6-flash"];
+    let data = null;
+    let lastError = null;
+
+    for (const model of chartModels) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": process.env.GEMINI_API_KEY,
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        data = await response.json();
+
+        if (response.ok) break;
+
+        lastError = data?.error?.message || `Model ${model} was unavailable.`;
+        console.error(`Trader chart ${model} error:`, data);
+      } catch (modelError) {
+        lastError = modelError?.message || `Model ${model} failed.`;
+        console.error(`Trader chart ${model} request error:`, modelError);
+      }
+    }
+
+    if (!data || !data.candidates) {
+      return res.status(502).json({
+        error:
+          "CreatorAI's chart AI is temporarily busy. Please try again in a moment.",
+        detail: lastError || undefined,
+      });
+    }
 require("dotenv").config();
 
 const express = require("express");
