@@ -321,6 +321,24 @@ input,textarea,select{
   .tools{grid-template-columns:1fr}
   .hero{padding-top:55px}
 }
+
+.one-click-hero{margin-top:18px;padding:22px;border-radius:18px;background:linear-gradient(145deg,#111b17,#101411);border:1px solid #315b4a;text-align:center}
+.one-click-badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#193b2e;color:#8ff0bd;font-size:11px;font-weight:800;letter-spacing:.5px}
+.one-click-hero h3{font-size:28px;margin:10px 0 7px}
+.one-click-hero p{max-width:720px;margin:0 auto;color:#aeb3b0;line-height:1.55}
+.one-click-actions{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;margin-top:18px}
+.one-click-button{border:0;border-radius:14px;padding:17px 18px;background:#8ff0bd;color:#07110b;font-weight:900;font-size:17px;cursor:pointer;box-shadow:0 8px 30px #0004}
+.one-click-button:hover{transform:translateY(-1px)}
+.field-help{font-size:12px;color:#858d88;margin-top:-5px;line-height:1.45}
+.optional{color:#777;font-size:11px}
+.paper-safety-note{margin-top:12px;padding:12px;border-radius:11px;background:#101914;border:1px solid #2a3c32;color:#aeb9b2;font-size:13px;line-height:1.5}
+.auto-result-card{padding:18px;border-radius:15px;background:#0f1411;border:1px solid #2c4037}
+.auto-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.auto-result-metric{padding:12px;border-radius:11px;background:#151a18}
+.auto-result-metric small{display:block;color:#858a91;margin-bottom:5px}.auto-result-metric strong{font-size:18px}
+.trade-verdict{font-size:27px;font-weight:900}.trade-verdict.good{color:#8ff0bd}.trade-verdict.wait{color:#f1d48a}.trade-verdict.bad{color:#ff9c9c}
+.opportunity-list{display:grid;gap:10px;margin-top:12px}.opportunity-item{padding:14px;border:1px solid #29352f;background:#121815;border-radius:13px}.opportunity-item strong{font-size:17px}.opportunity-item button{margin-top:10px}
+@media(max-width:700px){.one-click-actions{grid-template-columns:1fr}.auto-result-grid{grid-template-columns:1fr 1fr}.one-click-hero h3{font-size:23px}}
 </style>
 </head>
 
@@ -600,256 +618,109 @@ input,textarea,select{
     <div id="traderWorkspace" class="trader-panel">
       <div class="trader-head">
         <div>
-          <div class="trader-title">📈 CreatorAI Trader Pro</div>
-          <div class="trader-subtitle">
-            Built for Indian intraday traders — especially students and beginners.
-            Learn the setup, calculate the risk, and understand what could go wrong.
-          </div>
+          <div class="trader-title">🤖 CreatorAI Trader Pro</div>
+          <div class="trader-subtitle">Trading made simple. Tell CreatorAI what you want to trade, how much you want to use, and the maximum loss you can accept. CreatorAI does the complicated analysis.</div>
         </div>
         <div class="trader-price">₹299/month</div>
       </div>
 
+      <div class="one-click-hero">
+        <div class="one-click-badge">BEGINNER-FIRST AI TRADING</div>
+        <h3>One simple decision. CreatorAI does the rest.</h3>
+        <p>You choose a stock or let CreatorAI find an opportunity. Then the AI builds the trade plan, calculates the position size and explains everything in simple language.</p>
+      </div>
+
       <div class="trader-tabs">
-        <button type="button" class="trader-tab active" onclick="showTraderTab('analyze',this)">🔎 Analyze Trade</button>
-        <button type="button" class="trader-tab" onclick="showTraderTab('risk',this)">🛡️ Risk Calculator</button>
+        <button type="button" class="trader-tab active" onclick="showTraderTab('autotrade',this)">🚀 One-Click Trade</button>
         <button type="button" class="trader-tab" onclick="showTraderTab('chart',this)">📷 Chart Analyzer</button>
         <button type="button" class="trader-tab" onclick="showTraderTab('learn',this)">🎓 Beginner Guide</button>
       </div>
 
-      <div id="traderAnalyzeTab">
-        <div class="trader-beginner-tip">
-          💡 <strong>Beginner mode:</strong> Enter the trade you are considering.
-          CreatorAI will explain the risk/reward, identify weak points and give you
-          a structured assessment. It does <strong>not</strong> guarantee profit.
-        </div>
-
+      <div id="traderAutoTab">
         <div class="trader-grid">
+          <div class="trader-full">
+            <label>What do you want to trade?</label>
+            <input id="autoSymbol" list="indianStocks" type="text" placeholder="Type a stock, e.g. RELIANCE, TCS, HDFCBANK">
+            <datalist id="indianStocks">
+              <option value="RELIANCE"><option value="TCS"><option value="HDFCBANK"><option value="ICICIBANK"><option value="INFY"><option value="SBIN"><option value="BHARTIARTL"><option value="ITC"><option value="LT"><option value="AXISBANK"><option value="KOTAKBANK"><option value="MARUTI"><option value="SUNPHARMA"><option value="TATAMOTORS"><option value="TATASTEEL"><option value="ADANIENT"><option value="M&M"><option value="BAJFINANCE"><option value="HINDUNILVR"><option value="NIFTY50">
+            </datalist>
+            <div class="field-help">Don't know what to trade? Leave this blank and CreatorAI will scan a starter list of liquid Indian-market symbols.</div>
+          </div>
+
           <div>
-            <label>Indian Market</label>
-            <select id="tradeMarket">
-              <option value="NSE">NSE</option>
-              <option value="BSE">BSE</option>
+            <label>Amount you want to use (₹)</label>
+            <input id="autoCapital" type="number" min="1000" step="100" placeholder="25000">
+          </div>
+
+          <div>
+            <label>Maximum loss you accept (₹)</label>
+            <input id="autoMaxLoss" type="number" min="1" step="10" placeholder="500">
+          </div>
+
+          <div>
+            <label>Profit you're aiming for (₹) <span class="optional">optional</span></label>
+            <input id="autoProfitGoal" type="number" min="0" step="10" placeholder="1000">
+          </div>
+
+          <div>
+            <label>Trading style</label>
+            <select id="autoStyle">
+              <option value="conservative" selected>🟢 Conservative</option>
+              <option value="balanced">🟡 Balanced</option>
+              <option value="active">🟠 Active</option>
             </select>
-          </div>
-
-          <div>
-            <label>Instrument</label>
-            <select id="tradeInstrument">
-              <option value="Equity">Equity / Stock</option>
-              <option value="Index">Index — NIFTY / BANKNIFTY</option>
-              <option value="Futures">Futures</option>
-              <option value="Options">Options</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Symbol</label>
-            <input id="tradeSymbol" type="text" placeholder="e.g. RELIANCE / NIFTY">
-          </div>
-
-          <div>
-            <label>Intraday Timeframe</label>
-            <select id="tradeTimeframe">
-              <option value="5-minute">5 minute</option>
-              <option value="15-minute" selected>15 minute</option>
-              <option value="30-minute">30 minute</option>
-              <option value="1-hour">1 hour</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Direction</label>
-            <select id="tradeDirection">
-              <option value="BUY">BUY / LONG</option>
-              <option value="SELL">SELL / SHORT</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Setup Type</label>
-            <select id="tradeSetup">
-              <option>Breakout</option>
-              <option>Breakdown</option>
-              <option>Pullback</option>
-              <option>Support / Resistance</option>
-              <option>Trend continuation</option>
-              <option>Reversal</option>
-              <option>Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Entry Price</label>
-            <input id="tradeEntry" type="number" step="0.01" placeholder="25100">
-          </div>
-
-          <div>
-            <label>Stop Loss</label>
-            <input id="tradeSL" type="number" step="0.01" placeholder="24950">
-          </div>
-
-          <div>
-            <label>Target</label>
-            <input id="tradeTarget" type="number" step="0.01" placeholder="25500">
-          </div>
-
-          <div>
-            <label>Trading Capital (₹)</label>
-            <input id="tradeCapital" type="number" step="100" placeholder="25000">
-          </div>
-
-          <div>
-            <label>Maximum Account Risk (%)</label>
-            <select id="tradeRiskPct">
-              <option value="0.5">0.5% — cautious</option>
-              <option value="1" selected>1% — beginner default</option>
-              <option value="1.5">1.5%</option>
-              <option value="2">2%</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Quantity / Lots (optional)</label>
-            <input id="tradeQuantity" type="number" step="1" placeholder="e.g. 10">
           </div>
 
           <div class="trader-full">
-            <label>What are you seeing on the chart? <span style="color:#777">(optional)</span></label>
-            <textarea id="tradeContext" rows="3"
-              placeholder="Example: Price broke yesterday's high, volume looks strong, RSI is around 62..."></textarea>
-          </div>
-
-          <div class="trader-full">
-            <label>Why are you considering this trade? <span style="color:#777">(optional)</span></label>
-            <input id="tradeReason" type="text"
-              placeholder="Example: breakout after consolidation">
+            <label>What should CreatorAI do?</label>
+            <select id="autoAction">
+              <option value="paper" selected>🧪 Build & simulate the trade (Practice Mode)</option>
+              <option value="plan">📋 Build the trade plan only</option>
+            </select>
           </div>
         </div>
 
-        <div class="trader-actions">
-          <button class="btn primary" type="button" onclick="analyzeTraderSetup()">🤖 Analyze My Intraday Trade</button>
-          <button class="btn" type="button" onclick="resetTraderSetup()">Reset</button>
+        <div class="one-click-actions">
+          <button class="one-click-button" type="button" onclick="runOneClickTrader()">🚀 CREATE MY TRADE</button>
+          <button class="btn" type="button" onclick="findTraderOpportunities()">🔎 I DON'T KNOW — FIND FOR ME</button>
         </div>
 
-        <div id="traderResult" class="trader-result">
-          <div id="traderAssessment" class="trader-score"></div>
-          <div id="traderSummary" class="trader-note"></div>
+        <div class="paper-safety-note">🛡️ Practice Mode uses simulated trades only. No real broker order is sent from this button.</div>
 
-          <div class="trader-metrics">
-            <div class="trader-metric"><small>Risk / Reward</small><strong id="tradeRR">—</strong></div>
-            <div class="trader-metric"><small>Risk Budget</small><strong id="tradeMaxRisk">—</strong></div>
-            <div class="trader-metric"><small>Suggested Quantity</small><strong id="tradeQty">—</strong></div>
-          </div>
-
-          <div id="traderWarning" class="trader-warning"></div>
-
-          <div class="trader-ai-box">
-            <div class="trader-ai-title">🧠 CreatorAI Intraday Analysis</div>
-            <div id="traderAIResult" class="trader-ai-result"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="traderRiskTab" style="display:none">
-        <div class="trader-beginner-tip">
-          🛡️ This calculator focuses on <strong>how much you can lose</strong>,
-          not how much you might earn.
-        </div>
-        <div class="trader-grid">
-          <div><label>Capital (₹)</label><input id="riskCapital" type="number" placeholder="25000"></div>
-          <div><label>Risk per Trade (%)</label><select id="riskPct"><option value="0.5">0.5%</option><option value="1" selected>1%</option><option value="2">2%</option></select></div>
-          <div><label>Entry</label><input id="riskEntry" type="number" step="0.01" placeholder="1000"></div>
-          <div><label>Stop Loss</label><input id="riskSL" type="number" step="0.01" placeholder="990"></div>
-        </div>
-        <div class="trader-actions">
-          <button class="btn primary" type="button" onclick="calculateTraderRisk()">🛡️ Calculate Safe Size</button>
-        </div>
-        <div id="riskResult" class="trader-result">
-          <div id="riskText" class="trader-note"></div>
-        </div>
+        <div id="opportunityResult" class="trader-result"></div>
+        <div id="autoTraderResult" class="trader-result"></div>
       </div>
 
       <div id="traderChartTab" style="display:none">
-        <div class="trader-beginner-tip">
-          📷 <strong>Upload your chart screenshot.</strong>
-          CreatorAI will examine the visible price structure, trend, candles and
-          marked levels. For beginners, it will explain what the chart appears
-          to show in simple language.
-        </div>
-
+        <div class="trader-beginner-tip">📷 <strong>Upload your chart screenshot.</strong> CreatorAI will examine visible price structure and explain it in simple language.</div>
         <div class="chart-upload-box" id="chartUploadBox">
-          <input id="tradeChartFile" type="file" accept="image/png,image/jpeg,image/webp"
-            onchange="previewTradeChart(event)" hidden>
-          <button class="btn primary" type="button"
-            onclick="document.getElementById('tradeChartFile').click()">
-            📷 Choose Chart Screenshot
-          </button>
-          <div class="chart-upload-note">
-            PNG, JPG or WEBP • Best results with a clear TradingView/NSE/BSE chart
-          </div>
+          <input id="tradeChartFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewTradeChart(event)" hidden>
+          <button class="btn primary" type="button" onclick="document.getElementById('tradeChartFile').click()">📷 Choose Chart Screenshot</button>
+          <div class="chart-upload-note">PNG, JPG or WEBP • Best results with a clear TradingView/NSE/BSE chart</div>
           <img id="tradeChartPreview" class="chart-preview" style="display:none" alt="Chart preview">
         </div>
-
         <div class="trader-grid">
-          <div>
-            <label>Symbol (optional)</label>
-            <input id="chartSymbol" type="text" placeholder="e.g. NIFTY / RELIANCE">
-          </div>
-          <div>
-            <label>Timeframe</label>
-            <select id="chartTimeframe">
-              <option>5 minute</option>
-              <option selected>15 minute</option>
-              <option>30 minute</option>
-              <option>1 hour</option>
-            </select>
-          </div>
-          <div class="trader-full">
-            <label>What do you want to know? <span style="color:#777">(optional)</span></label>
-            <textarea id="chartQuestion" rows="3"
-              placeholder="Example: Is this breakout worth considering for an intraday trade?"></textarea>
-          </div>
+          <div><label>Symbol (optional)</label><input id="chartSymbol" type="text" placeholder="e.g. NIFTY / RELIANCE"></div>
+          <div><label>Timeframe</label><select id="chartTimeframe"><option>5 minute</option><option selected>15 minute</option><option>30 minute</option><option>1 hour</option></select></div>
+          <div class="trader-full"><label>What do you want to know? <span class="optional">optional</span></label><textarea id="chartQuestion" rows="3" placeholder="Example: Is this breakout worth considering for an intraday trade?"></textarea></div>
         </div>
-
-        <div class="trader-actions">
-          <button class="btn primary" type="button" onclick="analyzeTradeChart()">
-            🤖 Analyze My Chart
-          </button>
-          <button class="btn" type="button" onclick="resetTradeChart()">Reset</button>
-        </div>
-
-        <div id="chartResult" class="trader-result">
-          <div class="trader-ai-box">
-            <div class="trader-ai-title">🧠 CreatorAI Chart Analysis</div>
-            <div id="chartAIResult" class="trader-ai-result"></div>
-          </div>
-        </div>
-
-        <div class="trader-warning">
-          ⚠️ Chart analysis is based only on what is visible in the uploaded image.
-          CreatorAI does not have a crystal ball and will not invent live prices,
-          news or indicators that are not visible or supplied.
-        </div>
+        <div class="trader-actions"><button class="btn primary" type="button" onclick="analyzeTradeChart()">🤖 Analyze My Chart</button><button class="btn" type="button" onclick="resetTradeChart()">Reset</button></div>
+        <div id="chartResult" class="trader-result"><div class="trader-ai-box"><div class="trader-ai-title">🧠 CreatorAI Chart Analysis</div><div id="chartAIResult" class="trader-ai-result"></div></div></div>
       </div>
 
       <div id="traderLearnTab" style="display:none">
         <div class="trader-learn-grid">
-          <div class="trader-learn-card"><strong>1. Plan</strong><span>Know entry, stop and target before entering.</span></div>
-          <div class="trader-learn-card"><strong>2. Risk</strong><span>Decide the maximum rupee loss before the trade.</span></div>
-          <div class="trader-learn-card"><strong>3. Confirm</strong><span>Use your chart, timeframe and setup—not AI alone.</span></div>
-          <div class="trader-learn-card"><strong>4. Execute</strong><span>Do not move the stop just because the trade goes against you.</span></div>
-          <div class="trader-learn-card"><strong>5. Review</strong><span>Record the trade and learn from the result.</span></div>
-          <div class="trader-learn-card"><strong>6. Protect Capital</strong><span>One trade should never decide your entire trading account.</span></div>
+          <div class="trader-learn-card"><strong>1. Choose</strong><span>Pick a stock or let CreatorAI find an opportunity.</span></div>
+          <div class="trader-learn-card"><strong>2. Set your limit</strong><span>Tell CreatorAI the maximum rupee loss you can accept.</span></div>
+          <div class="trader-learn-card"><strong>3. AI builds the trade</strong><span>Entry, stop loss, target and quantity are calculated for you.</span></div>
+          <div class="trader-learn-card"><strong>4. Practice first</strong><span>Use simulated trades before considering any live broker connection.</span></div>
+          <div class="trader-learn-card"><strong>5. No forced trade</strong><span>If conditions are not good enough, CreatorAI can say WAIT / NO TRADE.</span></div>
+          <div class="trader-learn-card"><strong>6. Protect capital</strong><span>Your maximum loss is treated as a hard safety limit.</span></div>
         </div>
       </div>
 
-      <div class="trader-note">
-        ⚠️ CreatorAI is an educational decision-support tool. It does not provide guaranteed returns,
-        guaranteed signals or personalized investment advice. Intraday and derivatives trading can result
-        in rapid losses, including losses greater than expected.
-      </div>
+      <div class="trader-note">⚠️ CreatorAI is a decision-support and practice-trading tool. It cannot guarantee profit. Market data can be delayed or unavailable, and intraday/derivatives trading can cause rapid losses. Live broker execution will require separate compliant integration and explicit authorization.</div>
     </div>
-
     <div id="genResult" class="output"></div>
 
   </div>
@@ -1447,171 +1318,89 @@ function updateTraderVisibility() {
   const isTrader = type.value === "trading";
   trader.style.display = isTrader ? "block" : "none";
   if (voice && isTrader) voice.style.display = "none";
-
   const createButton = document.querySelector('button[onclick="generate()"]');
-  if (createButton) {
-    createButton.style.display = isTrader ? "none" : "block";
-  }
+  if (createButton) createButton.style.display = isTrader ? "none" : "block";
 }
 
 function showTraderTab(tab, button) {
-  document.getElementById("traderAnalyzeTab").style.display = tab === "analyze" ? "block" : "none";
-  document.getElementById("traderRiskTab").style.display = tab === "risk" ? "block" : "none";
+  document.getElementById("traderAutoTab").style.display = tab === "autotrade" ? "block" : "none";
   document.getElementById("traderLearnTab").style.display = tab === "learn" ? "block" : "none";
   document.getElementById("traderChartTab").style.display = tab === "chart" ? "block" : "none";
   document.querySelectorAll(".trader-tab").forEach(b => b.classList.remove("active"));
   if (button) button.classList.add("active");
 }
 
-async function analyzeTraderSetup() {
-  const market = document.getElementById("tradeMarket").value;
-  const instrument = document.getElementById("tradeInstrument").value;
-  const symbol = document.getElementById("tradeSymbol").value.trim();
-  const timeframe = document.getElementById("tradeTimeframe").value;
-  const direction = document.getElementById("tradeDirection").value;
-  const setup = document.getElementById("tradeSetup").value;
-  const entry = Number(document.getElementById("tradeEntry").value);
-  const sl = Number(document.getElementById("tradeSL").value);
-  const target = Number(document.getElementById("tradeTarget").value);
-  const capital = Number(document.getElementById("tradeCapital").value);
-  const riskPct = Number(document.getElementById("tradeRiskPct").value);
-  const quantity = Number(document.getElementById("tradeQuantity").value);
-  const context = document.getElementById("tradeContext").value.trim();
-  const reason = document.getElementById("tradeReason").value.trim();
+function money(n){ return "₹" + Number(n || 0).toLocaleString("en-IN", {maximumFractionDigits:2}); }
 
-  const result = document.getElementById("traderResult");
-  const assessment = document.getElementById("traderAssessment");
-  const summary = document.getElementById("traderSummary");
-  const warning = document.getElementById("traderWarning");
-  const aiResult = document.getElementById("traderAIResult");
-
-  if (!symbol || !entry || !sl || !target || !capital) {
-    result.style.display = "block";
-    assessment.textContent = "⚠️ Complete the trade details";
-    summary.textContent = "For a useful intraday analysis, enter symbol, entry, stop loss, target and capital.";
-    warning.textContent = "Do not enter a trade just because an AI gives an opinion. Missing data means the setup cannot be properly assessed.";
-    aiResult.textContent = "";
-    return;
-  }
-
-  const valid = direction === "BUY"
-    ? (sl < entry && target > entry)
-    : (sl > entry && target < entry);
-
-  if (!valid) {
-    result.style.display = "block";
-    assessment.textContent = "⚠️ Check your price levels";
-    summary.textContent = direction === "BUY"
-      ? "For a BUY/Long setup, Stop Loss should normally be below entry and Target above entry."
-      : "For a SELL/Short setup, Stop Loss should normally be above entry and Target below entry.";
-    warning.textContent = "Correct the levels before analyzing the trade.";
-    aiResult.textContent = "";
-    return;
-  }
-
-  const riskPerUnit = Math.abs(entry - sl);
-  const rewardPerUnit = Math.abs(target - entry);
-  const rr = rewardPerUnit / riskPerUnit;
-  const maxRiskMoney = capital * (riskPct / 100);
-  const riskBasedQty = Math.floor(maxRiskMoney / riskPerUnit);
-  const actualQty = quantity > 0 ? quantity : riskBasedQty;
-  const actualRisk = riskPerUnit * Math.max(0, actualQty);
-
-  let score = 50;
-  if (rr >= 2) score += 25;
-  else if (rr >= 1.5) score += 15;
-  else if (rr >= 1) score += 5;
-  else score -= 25;
-
-  if (riskPct <= 1) score += 15;
-  else if (riskPct <= 2) score += 5;
-  score = Math.max(0, Math.min(100, score));
-
-  const label = score >= 75 ? "FAVORABLE SETUP" : (score >= 50 ? "WAIT / CONFIRM" : "REWORK SETUP");
-
-  assessment.textContent = `${score}/100 • ${label}`;
-  summary.textContent =
-    `${symbol} • ${market} • ${instrument} • ${timeframe} intraday. ` +
-    `Basic risk/reward is 1:${rr.toFixed(2)}. ` +
-    `Your maximum risk budget is ₹${maxRiskMoney.toFixed(0)}.`;
-
-  document.getElementById("tradeRR").textContent = `1:${rr.toFixed(2)}`;
-  document.getElementById("tradeMaxRisk").textContent = `₹${maxRiskMoney.toFixed(0)}`;
-  document.getElementById("tradeQty").textContent = riskBasedQty > 0 ? `${riskBasedQty}` : "0";
-
-  warning.textContent =
-    actualQty > 0 && actualRisk > maxRiskMoney
-      ? `⚠️ Your entered quantity would risk about ₹${actualRisk.toFixed(0)}, above your ₹${maxRiskMoney.toFixed(0)} risk budget. Consider reducing size.`
-      : rr < 1.5
-        ? "⚠️ Risk/reward is relatively weak. A good-looking setup can still lose money."
-        : "✓ Basic risk screen passed. This is not a prediction of profit.";
-
-  aiResult.textContent = "🧠 CreatorAI is analyzing the intraday setup... Please wait.";
-  result.style.display = "block";
-
-  const aiPrompt = `
-You are CreatorAI Trader Pro, an educational intraday trading copilot designed mainly for Indian students and beginner traders.
-
-Analyze ONLY the information supplied below. Do NOT invent live market prices, news, indicators, support/resistance levels, volume, or market conditions that were not supplied. If current market data is missing, explicitly say that the analysis is based only on user-provided trade details.
-
-Market: ${market}
-Instrument: ${instrument}
-Symbol: ${symbol}
-Timeframe: ${timeframe}
-Direction: ${direction}
-Setup type: ${setup}
-Entry: ${entry}
-Stop Loss: ${sl}
-Target: ${target}
-Capital: ₹${capital}
-Maximum risk: ${riskPct}%
-Risk budget: ₹${maxRiskMoney.toFixed(0)}
-Calculated risk/reward: 1:${rr.toFixed(2)}
-Risk-based quantity: ${riskBasedQty}
-User quantity/lots: ${quantity || "not supplied"}
-User chart/context: ${context || "not supplied"}
-User reason: ${reason || "not supplied"}
-
-Give a beginner-friendly intraday assessment with exactly these sections:
-
-1. VERDICT — choose one: FAVORABLE, WAIT FOR CONFIRMATION, or REWORK / AVOID.
-2. WHAT LOOKS GOOD — 2 to 4 bullets.
-3. WHAT CAN GO WRONG — 2 to 4 bullets.
-4. RISK CHECK — explain the rupee risk and whether the supplied sizing stays within the risk budget.
-5. ENTRY / STOP / TARGET — comment only on the supplied levels and risk/reward. Do not invent levels.
-6. BEGINNER CHECKLIST — 4 short checks to complete before entering.
-7. WHAT WOULD INVALIDATE THIS TRADE — clear conditions based only on supplied information.
-8. EDUCATIONAL NOTE — one sentence reminding the user that this is not a guaranteed signal or personalized investment advice.
-
-Do not say "guaranteed", "sure-shot", "100% win", or claim that the trade will make money.
-Keep the language simple enough for a student or first-time trader.
-`;
-
+async function findTraderOpportunities() {
+  const box = document.getElementById("opportunityResult");
+  const capital = Number(document.getElementById("autoCapital").value);
+  const maxLoss = Number(document.getElementById("autoMaxLoss").value);
+  const style = document.getElementById("autoStyle").value;
+  box.style.display = "block";
+  box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict wait">🔎 CreatorAI is scanning the market...</div><p class="trader-note">Checking a starter list of Indian-market symbols. This is a suggestion engine, not a guarantee.</p></div>';
   try {
-    const response = await fetch("/api/brain", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      credentials: "same-origin",
-      body: JSON.stringify({
-        type: "trading",
-        idea: aiPrompt
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      aiResult.textContent = data.error || "AI analysis is temporarily unavailable.";
-      return;
-    }
-
-    aiResult.textContent = (data.result || "").trim() || "No AI analysis was returned.";
-  } catch (error) {
-    console.error("Trader AI error:", error);
-    aiResult.textContent = "CreatorAI could not complete the AI analysis right now. The risk calculations above are still available.";
-  }
+    const r = await fetch("/api/trader-opportunities", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({capital,maxLoss,style})});
+    const d = await r.json();
+    if (!r.ok) { box.innerHTML = `<div class="auto-result-card"><div class="trade-verdict bad">⚠️ ${d.error || "Scanner unavailable."}</div></div>`; return; }
+    const items = Array.isArray(d.opportunities) ? d.opportunities : [];
+    if (!items.length) { box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict wait">⏸️ NO CLEAR OPPORTUNITY</div><p class="trader-note">CreatorAI did not find a sufficiently clear setup from the available market data.</p></div>'; return; }
+    box.innerHTML = `<div class="auto-result-card"><div class="trade-verdict good">🔎 Opportunities found</div><p class="trader-note">CreatorAI ranked the current candidates using simple price/volume conditions. Select one to build a complete trade.</p><div class="opportunity-list">${items.map((x,i)=>`<div class="opportunity-item"><strong>${i+1}. ${x.symbol}</strong> • ${x.direction}<br><span class="small">${x.reason || "Setup detected from recent market data."}</span><br><span class="small">Last price: ${money(x.price)} • Momentum: ${x.momentum}%</span><br><button class="btn primary" type="button" onclick="selectOpportunity('${String(x.symbol).replace(/'/g,"\\'")}')">Use this stock →</button></div>`).join("")}</div></div>`;
+  } catch(e) { console.error(e); box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict bad">⚠️ CreatorAI could not scan the market right now.</div><p class="trader-note">Please try again later.</p></div>'; }
 }
 
+function selectOpportunity(symbol){ document.getElementById("autoSymbol").value = symbol; runOneClickTrader(); }
+
+async function runOneClickTrader() {
+  const symbol = document.getElementById("autoSymbol").value.trim().toUpperCase();
+  const capital = Number(document.getElementById("autoCapital").value);
+  const maxLoss = Number(document.getElementById("autoMaxLoss").value);
+  const profitGoal = Number(document.getElementById("autoProfitGoal").value) || 0;
+  const style = document.getElementById("autoStyle").value;
+  const action = document.getElementById("autoAction").value;
+  const box = document.getElementById("autoTraderResult");
+
+  if (!capital || capital < 1000 || !maxLoss || maxLoss <= 0) {
+    box.style.display = "block";
+    box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict wait">⚠️ Enter your amount and maximum acceptable loss</div><p class="trader-note">These two numbers are required so CreatorAI can size the practice trade safely.</p></div>';
+    return;
+  }
+  if (maxLoss >= capital) {
+    box.style.display = "block";
+    box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict bad">⚠️ Maximum loss is too high</div><p class="trader-note">Your maximum loss should be a small fraction of the amount you are using.</p></div>';
+    return;
+  }
+
+  box.style.display = "block";
+  box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict wait">🧠 CreatorAI is building your trade...</div><p class="trader-note">Fetching recent market data, checking the setup, calculating risk and preparing a beginner-friendly plan.</p></div>';
+
+  try {
+    const r = await fetch("/api/trader-plan", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({symbol,capital,maxLoss,profitGoal,style,action})});
+    const d = await r.json();
+    if (!r.ok) { box.innerHTML = `<div class="auto-result-card"><div class="trade-verdict bad">⚠️ ${d.error || "Trade engine unavailable."}</div></div>`; return; }
+
+    const p = d.plan || {};
+    const verdictClass = p.verdict === "TRADE" ? "good" : (p.verdict === "WAIT" ? "wait" : "bad");
+    box.innerHTML = `
+      <div class="auto-result-card">
+        <div class="trade-verdict ${verdictClass}">${p.verdict === "TRADE" ? "🟢 TRADE PLAN READY" : p.verdict === "WAIT" ? "🟡 WAIT — NO ENTRY YET" : "🔴 NO TRADE"}</div>
+        <p class="trader-note">${p.simple_reason || "CreatorAI has completed the risk and market-data checks."}</p>
+        <div class="auto-result-grid">
+          <div class="auto-result-metric"><small>Stock</small><strong>${p.symbol || symbol}</strong></div>
+          <div class="auto-result-metric"><small>Direction</small><strong>${p.direction || "—"}</strong></div>
+          <div class="auto-result-metric"><small>Entry</small><strong>${p.entry ? money(p.entry) : "—"}</strong></div>
+          <div class="auto-result-metric"><small>Stop Loss</small><strong>${p.stopLoss ? money(p.stopLoss) : "—"}</strong></div>
+          <div class="auto-result-metric"><small>Target</small><strong>${p.target ? money(p.target) : "—"}</strong></div>
+          <div class="auto-result-metric"><small>Quantity</small><strong>${p.quantity || 0}</strong></div>
+          <div class="auto-result-metric"><small>Max Loss</small><strong>${money(p.maxLoss)}</strong></div>
+          <div class="auto-result-metric"><small>Potential Profit</small><strong>${money(p.potentialProfit)}</strong></div>
+        </div>
+        <div class="trader-ai-box"><div class="trader-ai-title">🧠 Why CreatorAI chose this</div><div class="trader-ai-result">${p.explanation || "No explanation returned."}</div></div>
+        <div class="trader-warning">⚠️ ${p.warning || "This is a simulated trade plan. Do not treat it as a guaranteed signal."}</div>
+        ${d.paperTrade ? `<div class="trader-ai-box" style="margin-top:14px"><div class="trader-ai-title">🧪 Practice Trade</div><div class="trader-ai-result">${d.paperTrade.message}<br><br><strong>Status:</strong> ${d.paperTrade.status}<br><strong>Simulated entry:</strong> ${money(d.paperTrade.entry)}<br><strong>Simulated quantity:</strong> ${d.paperTrade.quantity}</div></div>` : ""}
+      </div>`;
+  } catch(e) { console.error(e); box.innerHTML = '<div class="auto-result-card"><div class="trade-verdict bad">⚠️ CreatorAI could not complete the trade plan.</div></div>'; }
+}
 
 function previewTradeChart(event) {
   const file = event.target.files?.[0];
