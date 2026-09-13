@@ -359,10 +359,18 @@ input,textarea,select{
     <br>
 
     <button
+      id="upgradeBtn"
       class="btn primary"
       onclick="startSubscription()">
       Upgrade to Pro — ₹199/month
     </button>
+
+    <div
+      id="proStatus"
+      class="status"
+      style="display:none">
+      🟢 Creator Pro Active — ₹199/month • Subscription authenticated
+    </div>
 
   </div>
 
@@ -645,6 +653,20 @@ async function loadMe() {
     document.getElementById("userStatus")
       .textContent =
       `${u.email} • ${u.plan.toUpperCase()} • subscription: ${u.subscription_status}`;
+
+    const upgradeBtn =
+      document.getElementById("upgradeBtn");
+
+    const proStatus =
+      document.getElementById("proStatus");
+
+    if (u.plan.toLowerCase() === "pro") {
+      upgradeBtn.style.display = "none";
+      proStatus.style.display = "block";
+    } else {
+      upgradeBtn.style.display = "inline-block";
+      proStatus.style.display = "none";
+    }
 
   } catch(error) {
 
