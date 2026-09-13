@@ -227,6 +227,29 @@ input,textarea,select{
 .trader-learn-card{padding:15px;border-radius:13px;background:#151a18;border:1px solid #29352f}
 .trader-learn-card strong{display:block;color:#8ff0bd;margin-bottom:6px}
 .trader-learn-card span{display:block;color:#aeb3b0;line-height:1.5}
+.chart-upload-box{
+  margin-top:16px;
+  padding:22px;
+  border:1px dashed #4c6d5d;
+  border-radius:15px;
+  background:#0d1210;
+  text-align:center;
+}
+.chart-upload-note{
+  margin-top:10px;
+  color:#8e9691;
+  font-size:13px;
+  line-height:1.5;
+}
+.chart-preview{
+  display:block;
+  width:100%;
+  max-height:520px;
+  object-fit:contain;
+  margin:18px auto 0;
+  border-radius:12px;
+  border:1px solid #2c4037;
+}
 @media(max-width:700px){.trader-grid,.trader-metrics{grid-template-columns:1fr}.trader-full{grid-column:auto}}
 
 .brain-result{
@@ -589,6 +612,7 @@ input,textarea,select{
       <div class="trader-tabs">
         <button type="button" class="trader-tab active" onclick="showTraderTab('analyze',this)">🔎 Analyze Trade</button>
         <button type="button" class="trader-tab" onclick="showTraderTab('risk',this)">🛡️ Risk Calculator</button>
+        <button type="button" class="trader-tab" onclick="showTraderTab('chart',this)">📷 Chart Analyzer</button>
         <button type="button" class="trader-tab" onclick="showTraderTab('learn',this)">🎓 Beginner Guide</button>
       </div>
 
@@ -742,6 +766,69 @@ input,textarea,select{
         </div>
         <div id="riskResult" class="trader-result">
           <div id="riskText" class="trader-note"></div>
+        </div>
+      </div>
+
+      <div id="traderChartTab" style="display:none">
+        <div class="trader-beginner-tip">
+          📷 <strong>Upload your chart screenshot.</strong>
+          CreatorAI will examine the visible price structure, trend, candles and
+          marked levels. For beginners, it will explain what the chart appears
+          to show in simple language.
+        </div>
+
+        <div class="chart-upload-box" id="chartUploadBox">
+          <input id="tradeChartFile" type="file" accept="image/png,image/jpeg,image/webp"
+            onchange="previewTradeChart(event)" hidden>
+          <button class="btn primary" type="button"
+            onclick="document.getElementById('tradeChartFile').click()">
+            📷 Choose Chart Screenshot
+          </button>
+          <div class="chart-upload-note">
+            PNG, JPG or WEBP • Best results with a clear TradingView/NSE/BSE chart
+          </div>
+          <img id="tradeChartPreview" class="chart-preview" style="display:none" alt="Chart preview">
+        </div>
+
+        <div class="trader-grid">
+          <div>
+            <label>Symbol (optional)</label>
+            <input id="chartSymbol" type="text" placeholder="e.g. NIFTY / RELIANCE">
+          </div>
+          <div>
+            <label>Timeframe</label>
+            <select id="chartTimeframe">
+              <option>5 minute</option>
+              <option selected>15 minute</option>
+              <option>30 minute</option>
+              <option>1 hour</option>
+            </select>
+          </div>
+          <div class="trader-full">
+            <label>What do you want to know? <span style="color:#777">(optional)</span></label>
+            <textarea id="chartQuestion" rows="3"
+              placeholder="Example: Is this breakout worth considering for an intraday trade?"></textarea>
+          </div>
+        </div>
+
+        <div class="trader-actions">
+          <button class="btn primary" type="button" onclick="analyzeTradeChart()">
+            🤖 Analyze My Chart
+          </button>
+          <button class="btn" type="button" onclick="resetTradeChart()">Reset</button>
+        </div>
+
+        <div id="chartResult" class="trader-result">
+          <div class="trader-ai-box">
+            <div class="trader-ai-title">🧠 CreatorAI Chart Analysis</div>
+            <div id="chartAIResult" class="trader-ai-result"></div>
+          </div>
+        </div>
+
+        <div class="trader-warning">
+          ⚠️ Chart analysis is based only on what is visible in the uploaded image.
+          CreatorAI does not have a crystal ball and will not invent live prices,
+          news or indicators that are not visible or supplied.
         </div>
       </div>
 
@@ -1371,6 +1458,7 @@ function showTraderTab(tab, button) {
   document.getElementById("traderAnalyzeTab").style.display = tab === "analyze" ? "block" : "none";
   document.getElementById("traderRiskTab").style.display = tab === "risk" ? "block" : "none";
   document.getElementById("traderLearnTab").style.display = tab === "learn" ? "block" : "none";
+  document.getElementById("traderChartTab").style.display = tab === "chart" ? "block" : "none";
   document.querySelectorAll(".trader-tab").forEach(b => b.classList.remove("active"));
   if (button) button.classList.add("active");
 }
@@ -1522,6 +1610,140 @@ Keep the language simple enough for a student or first-time trader.
     console.error("Trader AI error:", error);
     aiResult.textContent = "CreatorAI could not complete the AI analysis right now. The risk calculations above are still available.";
   }
+}
+
+
+function previewTradeChart(event) {
+  const file = event.target.files?.[0];
+  const preview = document.getElementById("tradeChartPreview");
+  if (!file || !preview) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose a PNG, JPG or WEBP chart image.");
+    event.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function() {
+    preview.src = reader.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressChartImage(file, maxSize = 1600) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Could not read the chart image."));
+
+    reader.onload = () => {
+      const img = new Image();
+
+      img.onerror = () => reject(new Error("The selected chart image could not be opened."));
+
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          blob => {
+            if (!blob) {
+              reject(new Error("Could not prepare the chart image."));
+              return;
+            }
+            const fr = new FileReader();
+            fr.onload = () => {
+              const dataUrl = String(fr.result || "");
+              const comma = dataUrl.indexOf(",");
+              resolve({
+                mimeType: "image/jpeg",
+                base64: comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl
+              });
+            };
+            fr.onerror = () => reject(new Error("Could not encode the chart image."));
+            fr.readAsDataURL(blob);
+          },
+          "image/jpeg",
+          0.78
+        );
+      };
+
+      img.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeTradeChart() {
+  const file = document.getElementById("tradeChartFile")?.files?.[0];
+  const symbol = document.getElementById("chartSymbol").value.trim();
+  const timeframe = document.getElementById("chartTimeframe").value;
+  const question = document.getElementById("chartQuestion").value.trim();
+  const result = document.getElementById("chartResult");
+  const output = document.getElementById("chartAIResult");
+
+  if (!file) {
+    result.style.display = "block";
+    output.textContent = "📷 Please choose a chart screenshot first.";
+    return;
+  }
+
+  result.style.display = "block";
+  output.textContent = "🧠 CreatorAI is reading your chart... Please wait.";
+
+  try {
+    const image = await compressChartImage(file);
+
+    const response = await fetch("/api/trader-chart", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({
+        imageBase64: image.base64,
+        mimeType: image.mimeType,
+        symbol,
+        timeframe,
+        question
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      output.textContent = data.error || "Chart analysis is temporarily unavailable.";
+      return;
+    }
+
+    output.textContent = (data.result || "").trim() || "No chart analysis was returned.";
+  } catch (error) {
+    console.error("Chart analysis error:", error);
+    output.textContent = "CreatorAI could not analyze this chart right now. Please try a clear PNG/JPG screenshot.";
+  }
+}
+
+function resetTradeChart() {
+  const file = document.getElementById("tradeChartFile");
+  const preview = document.getElementById("tradeChartPreview");
+  const result = document.getElementById("chartResult");
+  const output = document.getElementById("chartAIResult");
+
+  if (file) file.value = "";
+  if (preview) {
+    preview.src = "";
+    preview.style.display = "none";
+  }
+  if (result) result.style.display = "none";
+  if (output) output.textContent = "";
+  document.getElementById("chartSymbol").value = "";
+  document.getElementById("chartQuestion").value = "";
 }
 
 function calculateTraderRisk() {
